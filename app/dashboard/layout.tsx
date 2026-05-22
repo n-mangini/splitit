@@ -3,12 +3,17 @@
 import { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, LogOut, Plus, ReceiptText, UserRound } from 'lucide-react'
+import { Home, ReceiptText, UserRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/dashboard', label: 'Inicio', icon: Home },
   { href: '/dashboard/groups', label: 'Eventos', icon: ReceiptText },
+]
+
+const mobileNavItems = [
+  ...navItems,
+  { href: '/dashboard/profile', label: 'Perfil', icon: UserRound },
 ]
 
 function Logo() {
@@ -52,28 +57,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </nav>
 
         <Link
-          href="/dashboard/new"
-          className="mt-6 flex items-center justify-center gap-2 rounded-[18px] bg-primary px-4 py-3 text-sm font-black text-primary-foreground"
+          href="/dashboard/profile"
+          className={cn(
+            'mt-auto flex items-center gap-3 rounded-[24px] bg-background p-4 transition-colors hover:bg-muted',
+            pathname.startsWith('/dashboard/profile') && 'bg-[#E8FAF5]'
+          )}
         >
-          <Plus className="h-4 w-4" />
-          Crear evento
-        </Link>
-
-        <div className="mt-auto rounded-[24px] bg-background p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E8FAF5] text-sm font-black text-primary">
-              JP
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-black text-foreground">Juan Perez</p>
-              <p className="truncate text-xs font-semibold text-muted-foreground">juan@email.com</p>
-            </div>
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E8FAF5] text-primary">
+            <UserRound className="h-5 w-5" />
           </div>
-          <Link href="/login" className="mt-4 flex items-center gap-2 text-sm font-bold text-muted-foreground">
-            <LogOut className="h-4 w-4" />
-            Cerrar sesion
-          </Link>
-        </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-black text-foreground">Juan Perez</p>
+            <p className="truncate text-xs font-semibold text-muted-foreground">Perfil</p>
+          </div>
+        </Link>
       </aside>
 
       <header className="sticky top-0 z-30 hidden border-b border-border/70 bg-background/85 backdrop-blur-xl lg:block">
@@ -83,12 +80,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <p className="text-sm font-bold text-muted-foreground">Gastos compartidos</p>
               <p className="text-xl font-black text-foreground">Workspace personal</p>
             </div>
-            <Link
-              href="/dashboard/profile"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground shadow-[0_4px_16px_rgba(15,23,42,0.04)]"
-            >
-              <UserRound className="h-5 w-5" />
-            </Link>
           </div>
         </div>
       </header>
@@ -98,9 +89,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 mx-auto h-[88px] max-w-md rounded-t-[28px] border border-b-0 border-border bg-card shadow-[0_-4px_20px_rgba(0,0,0,0.05)] lg:hidden">
-        <div className="grid h-full grid-cols-2 px-10">
-          {navItems.map((item, index) => {
-            const isActive = index === 0 ? pathname === item.href : index === 1 && (pathname.startsWith('/dashboard/groups') || pathname.startsWith('/dashboard/event'))
+        <div className="grid h-full grid-cols-3 px-8">
+          {mobileNavItems.map((item, index) => {
+            const isActive =
+              index === 0
+                ? pathname === item.href
+                : index === 1
+                  ? pathname.startsWith('/dashboard/groups') || pathname.startsWith('/dashboard/event')
+                  : pathname.startsWith('/dashboard/profile')
             const Icon = item.icon
 
             return (

@@ -2,9 +2,9 @@
 
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { Link2, UserRound, UsersRound, WalletCards } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { ArrowDownLeft, ArrowUpRight, CheckCircle2, UsersRound, WalletCards } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { calculateBalances, formatCurrency, mockEvents } from '@/lib/mock-data'
 
 function Logo() {
   return (
@@ -70,14 +70,85 @@ function ActionCard({
   )
 }
 
+function StatCard({
+  label,
+  value,
+  tone = 'green',
+  icon,
+}: {
+  label: string
+  value: string
+  tone?: 'green' | 'purple' | 'blue'
+  icon: ReactNode
+}) {
+  return (
+    <article className="splitit-card p-4">
+      <div className="flex items-center gap-3">
+        <IconCircle tone={tone}>{icon}</IconCircle>
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-muted-foreground">{label}</p>
+          <p className="mt-1 truncate text-lg font-black text-foreground">{value}</p>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function BalanceBucketCard({
+  title,
+  count,
+  amount,
+  tone,
+  icon,
+}: {
+  title: string
+  count: number
+  amount: number
+  tone: 'green' | 'purple' | 'blue'
+  icon: ReactNode
+}) {
+  return (
+    <article className="splitit-card p-4">
+      <div className="flex items-center gap-3">
+        <IconCircle tone={tone}>{icon}</IconCircle>
+        <div>
+          <p className="text-2xl font-black text-foreground">{count}</p>
+          <p className="text-sm font-bold text-muted-foreground">{title}</p>
+        </div>
+      </div>
+      <p
+        className={cn(
+          'mt-4 text-lg font-black',
+          tone === 'green' && 'text-primary',
+          tone === 'purple' && 'text-secondary',
+          tone === 'blue' && 'text-foreground'
+        )}
+      >
+        {formatCurrency(Math.abs(amount))}
+      </p>
+    </article>
+  )
+}
+
 export default function DashboardPage() {
+  const eventBalances = mockEvents.map((event) => {
+    const netBalance = calculateBalances(event).find((balance) => balance.participantId === 'p-1')?.netBalance ?? 0
+    return { event, netBalance }
+  })
+  const netBalance = mockEvents.reduce((acc, event) => {
+    const eventBalance = calculateBalances(event).find((balance) => balance.participantId === 'p-1')?.netBalance ?? 0
+    return acc + eventBalance
+  }, 0)
+  const favorableSplits = eventBalances.filter((item) => item.netBalance > 0)
+  const pendingSplits = eventBalances.filter((item) => item.netBalance < 0)
+  const settledSplits = eventBalances.filter((item) => item.netBalance === 0)
+  const favorableAmount = favorableSplits.reduce((acc, item) => acc + item.netBalance, 0)
+  const pendingAmount = pendingSplits.reduce((acc, item) => acc + Math.abs(item.netBalance), 0)
+
   return (
     <div className="space-y-7 lg:space-y-10">
       <header className="flex items-center justify-between lg:hidden">
         <Logo />
-        <Button variant="ghost" size="icon" className="h-11 w-11 rounded-full bg-card shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
-          <UserRound className="h-5 w-5 text-foreground" />
-        </Button>
       </header>
 
       <section className="relative overflow-hidden rounded-[32px] bg-[#E8FAF5] p-6 sm:p-8 lg:min-h-[300px] lg:p-10">
@@ -95,7 +166,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="mx-auto grid w-full grid-cols-2 gap-4 lg:max-w-3xl">
+      <section className="grid w-full gap-4">
         <ActionCard
           title="Crear evento"
           description="Inicia un nuevo evento y empeza a dividir gastos."
@@ -103,14 +174,58 @@ export default function DashboardPage() {
           href="/dashboard/new"
           icon={<UsersRound className="h-6 w-6" />}
         />
-        <ActionCard
-          title="Invitacion por link"
-          description="La unica forma de sumarse es desde un link publico o privado."
+      </section>
+
+      <section className="grid grid-cols-2 gap-4">
+        <StatCard
+          label="Balance neto"
+          value={formatCurrency(Math.abs(netBalance))}
+          tone={netBalance < 0 ? 'purple' : 'green'}
+          icon={<WalletCards className="h-6 w-6" />}
+        />
+        <StatCard
+          label="Splits activos"
+          value={`${favorableSplits.length + pendingSplits.length}`}
           tone="blue"
-          icon={<Link2 className="h-6 w-6" />}
+          icon={<UsersRound className="h-6 w-6" />}
         />
       </section>
 
+      <section className="space-y-3">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-sm font-black text-primary">Estado de splits</p>
+            <h2 className="mt-1 text-2xl font-black text-foreground">Pendientes</h2>
+          </div>
+          <Link href="/dashboard/groups" className="text-sm font-black text-primary">
+            Ver detalle
+          </Link>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <BalanceBucketCard
+            title="a favor"
+            count={favorableSplits.length}
+            amount={favorableAmount}
+            tone="green"
+            icon={<ArrowDownLeft className="h-6 w-6" />}
+          />
+          <BalanceBucketCard
+            title="por pagar"
+            count={pendingSplits.length}
+            amount={pendingAmount}
+            tone="purple"
+            icon={<ArrowUpRight className="h-6 w-6" />}
+          />
+          <BalanceBucketCard
+            title="en cero"
+            count={settledSplits.length}
+            amount={0}
+            tone="blue"
+            icon={<CheckCircle2 className="h-6 w-6" />}
+          />
+        </div>
+      </section>
     </div>
   )
 }

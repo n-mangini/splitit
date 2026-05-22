@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { use, useState } from 'react'
 import Link from 'next/link'
 import {
@@ -35,6 +35,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import {
@@ -46,7 +48,7 @@ import {
   getInviteLink,
   mockEvents,
 } from '@/lib/mock-data'
-import { Expense } from '@/lib/types'
+import { Expense, ExpenseCategory } from '@/lib/types'
 
 type TabValue = 'expenses' | 'balances' | 'members'
 
@@ -54,6 +56,16 @@ const tabs: { value: TabValue; label: string }[] = [
   { value: 'expenses', label: 'Gastos' },
   { value: 'balances', label: 'Saldos' },
   { value: 'members', label: 'Integrantes' },
+]
+
+const expenseCategories: { value: ExpenseCategory; label: string }[] = [
+  { value: 'food', label: 'Comida' },
+  { value: 'transport', label: 'Transporte' },
+  { value: 'accommodation', label: 'Alojamiento' },
+  { value: 'entertainment', label: 'Actividades' },
+  { value: 'shopping', label: 'Compras' },
+  { value: 'utilities', label: 'Servicios' },
+  { value: 'other', label: 'Otros' },
 ]
 
 function IconCircle({
@@ -270,15 +282,24 @@ function MemberBalanceRow({ name, amount }: { name: string; amount: number }) {
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const event = mockEvents.find((item) => item.id === resolvedParams.id) ?? mockEvents[0]
+  const [expenses, setExpenses] = useState<Expense[]>(event.expenses)
   const [activeTab, setActiveTab] = useState<TabValue>('expenses')
   const [copied, setCopied] = useState(false)
   const [inviteAccess, setInviteAccess] = useState(event.inviteAccess)
   const [privateInvitees, setPrivateInvitees] = useState((event.privateInvitees ?? []).join(', '))
+  const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false)
+  const [expenseName, setExpenseName] = useState('')
+  const [expenseAmount, setExpenseAmount] = useState('')
+  const [expensePaidBy, setExpensePaidBy] = useState(event.participants[0]?.id ?? '')
+  const [expenseCategory, setExpenseCategory] = useState<ExpenseCategory>('food')
+  const [splitBetween, setSplitBetween] = useState<string[]>(event.participants.map((participant) => participant.id))
+  const [expenseError, setExpenseError] = useState('')
   const accessChanged = inviteAccess !== event.inviteAccess
 
-  const balances = calculateBalances(event)
+  const eventSnapshot = { ...event, expenses }
+  const balances = calculateBalances(eventSnapshot)
   const settlements = calculateSettlements(balances)
-  const totalExpenses = event.expenses.reduce((acc, expense) => acc + expense.amount, 0)
+  const totalExpenses = expenses.reduce((acc, expense) => acc + expense.amount, 0)
   const averageExpense = totalExpenses / event.participants.length
   const totalToPay = settlements.reduce((acc, settlement) => acc + settlement.amount, 0)
   const inviteLink = getInviteLink(event.inviteCode, inviteAccess)
@@ -287,6 +308,67 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     await navigator.clipboard.writeText(inviteLink)
     setCopied(true)
     setTimeout(() => setCopied(false), 1600)
+  }
+
+  const toggleSplitParticipant = (participantId: string) => {
+    setSplitBetween((current) =>
+      current.includes(participantId)
+        ? current.filter((id) => id !== participantId)
+        : [...current, participantId]
+    )
+  }
+
+  const resetExpenseForm = () => {
+    setExpenseName('')
+    setExpenseAmount('')
+    setExpensePaidBy(event.participants[0]?.id ?? '')
+    setExpenseCategory('food')
+    setSplitBetween(event.participants.map((participant) => participant.id))
+    setExpenseError('')
+  }
+
+  const handleAddExpense = (formEvent: FormEvent) => {
+    formEvent.preventDefault()
+    setExpenseError('')
+
+    const amount = Number(expenseAmount)
+
+    if (!expenseName.trim()) {
+      setExpenseError('Ingresa un nombre para el gasto')
+      return
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setExpenseError('Ingresa un monto valido')
+      return
+    }
+
+    if (!expensePaidBy) {
+      setExpenseError('Selecciona quien pago')
+      return
+    }
+
+    if (splitBetween.length === 0) {
+      setExpenseError('Selecciona al menos una persona para dividir')
+      return
+    }
+
+    setExpenses((current) => [
+      {
+        id: `exp-local-${Date.now()}`,
+        eventId: event.id,
+        name: expenseName.trim(),
+        amount,
+        paidBy: expensePaidBy,
+        splitBetween,
+        date: new Date().toISOString().slice(0, 10),
+        category: expenseCategory,
+        createdAt: new Date().toISOString(),
+      },
+      ...current,
+    ])
+    resetExpenseForm()
+    setIsAddExpenseOpen(false)
   }
 
   return (
@@ -394,7 +476,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             <div>
               <h1 className="text-2xl font-black text-foreground lg:text-4xl">{event.name}</h1>
               <p className="mt-1 max-w-xl text-sm font-semibold text-muted-foreground lg:text-base">
-                {event.participants.length} integrantes · {event.expenses.length} gastos · {event.description}
+                {event.participants.length} integrantes · {expenses.length} gastos · {event.description}
               </p>
             </div>
           </div>
@@ -419,7 +501,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-black text-foreground lg:text-3xl">Gastos</h2>
-                <p className="text-sm text-muted-foreground">{event.expenses.length} movimientos</p>
+                <p className="text-sm text-muted-foreground">{expenses.length} movimientos</p>
               </div>
               <Button variant="outline" className="h-10 rounded-[16px] border-border bg-card font-black">
                 <SlidersHorizontal className="mr-2 h-4 w-4" />
@@ -436,14 +518,132 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 />
               </div>
 
-              <Button className="h-14 w-full rounded-[18px] bg-primary text-base font-black text-primary-foreground hover:bg-primary/90">
-                <Plus className="mr-2 h-5 w-5" />
-                Agregar gasto
-              </Button>
+              <Dialog open={isAddExpenseOpen} onOpenChange={setIsAddExpenseOpen}>
+                <DialogTrigger asChild>
+                  <Button className="h-14 w-full rounded-[18px] bg-primary text-base font-black text-primary-foreground hover:bg-primary/90">
+                    <Plus className="mr-2 h-5 w-5" />
+                    Agregar gasto
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[90vh] overflow-y-auto rounded-[24px]">
+                  <DialogHeader>
+                    <DialogTitle>Agregar gasto</DialogTitle>
+                    <DialogDescription>
+                      Carga quien pago, el monto y entre quienes se divide.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <form onSubmit={handleAddExpense} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="expense-name">Nombre</Label>
+                      <Input
+                        id="expense-name"
+                        value={expenseName}
+                        onChange={(item) => setExpenseName(item.target.value)}
+                        placeholder="Ej: Supermercado"
+                        className="rounded-[18px]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="expense-amount">Monto</Label>
+                        <Input
+                          id="expense-amount"
+                          inputMode="decimal"
+                          value={expenseAmount}
+                          onChange={(item) => setExpenseAmount(item.target.value)}
+                          placeholder="0"
+                          className="rounded-[18px]"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Categoria</Label>
+                        <Select value={expenseCategory} onValueChange={(value) => setExpenseCategory(value as ExpenseCategory)}>
+                          <SelectTrigger className="h-10 rounded-[18px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {expenseCategories.map((category) => (
+                              <SelectItem key={category.value} value={category.value}>
+                                {category.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Pago</Label>
+                      <Select value={expensePaidBy} onValueChange={setExpensePaidBy}>
+                        <SelectTrigger className="h-11 rounded-[18px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {event.participants.map((participant) => (
+                            <SelectItem key={participant.id} value={participant.id}>
+                              {participant.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Dividir entre</Label>
+                        <span className="text-xs font-semibold text-muted-foreground">{splitBetween.length} seleccionados</span>
+                      </div>
+                      <div className="grid gap-2">
+                        {event.participants.map((participant) => {
+                          const checked = splitBetween.includes(participant.id)
+
+                          return (
+                            <label
+                              key={participant.id}
+                              className="flex cursor-pointer items-center gap-3 rounded-[18px] border border-border bg-background px-3 py-2"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleSplitParticipant(participant.id)}
+                                className="h-4 w-4 accent-primary"
+                              />
+                              <span className="text-sm font-bold text-foreground">{participant.name}</span>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {expenseError && (
+                      <p className="text-sm font-semibold text-destructive">{expenseError}</p>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="rounded-[18px]"
+                        onClick={() => {
+                          resetExpenseForm()
+                          setIsAddExpenseOpen(false)
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button type="submit" className="rounded-[18px]">
+                        Guardar gasto
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
 
             <div className="grid gap-3 xl:grid-cols-2">
-              {event.expenses.map((expense) => {
+              {expenses.map((expense) => {
                 const payer = event.participants.find((participant) => participant.id === expense.paidBy)
 
                 return <ExpenseCard key={expense.id} expense={expense} paidBy={payer?.name} />
