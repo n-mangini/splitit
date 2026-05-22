@@ -44,6 +44,8 @@ export interface Event {
   expenses: Expense[]
   createdAt: string
   inviteCode: string
+  inviteAccess: 'public' | 'private'
+  privateInvitees?: string[]
   currency: string
 }
 

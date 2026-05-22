@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { ChevronRight, Plane, Plus, Search, UsersRound } from 'lucide-react'
+import { ChevronRight, Link2, Plane, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { calculateBalances, formatCurrency, mockEvents } from '@/lib/mock-data'
@@ -97,12 +97,10 @@ export default function GroupsPage() {
             placeholder="Buscar evento"
           />
         </div>
-        <Link href="/join/demo">
-          <Button variant="outline" className="h-14 w-full rounded-[18px] border-border bg-card px-5 font-black md:w-auto">
-            <UsersRound className="mr-2 h-5 w-5 text-[#2D9CDB]" />
-            Unirme a un evento
-          </Button>
-        </Link>
+        <div className="flex min-h-14 items-center gap-3 rounded-[20px] border border-border bg-card px-4 text-sm font-semibold text-muted-foreground">
+          <Link2 className="h-5 w-5 shrink-0 text-[#2D9CDB]" />
+          <span>Para sumarte a otro evento, abri su link de invitacion.</span>
+        </div>
       </section>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">

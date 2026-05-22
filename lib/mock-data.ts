@@ -124,6 +124,7 @@ export const mockEvents: Event[] = [
     expenses: tripExpenses,
     createdAt: '2024-01-10T08:00:00Z',
     inviteCode: 'BARI2024',
+    inviteAccess: 'public',
     currency: 'ARS'
   },
   {
@@ -135,6 +136,8 @@ export const mockEvents: Event[] = [
     expenses: aptExpenses,
     createdAt: '2024-01-01T10:00:00Z',
     inviteCode: 'DEPTO01',
+    inviteAccess: 'private',
+    privateInvitees: ['maria@email.com', 'carlos@email.com'],
     currency: 'ARS'
   },
   {
@@ -146,6 +149,7 @@ export const mockEvents: Event[] = [
     expenses: [],
     createdAt: '2024-02-01T10:00:00Z',
     inviteCode: 'ANA2024',
+    inviteAccess: 'public',
     currency: 'ARS'
   },
 ]
@@ -261,8 +265,11 @@ export const categoryInfo: Record<string, { label: string; color: string }> = {
 }
 
 // Generate invite link
-export function getInviteLink(inviteCode: string): string {
-  return `${typeof window !== 'undefined' ? window.location.origin : ''}/join/${inviteCode}`
+export function getInviteLink(inviteCode: string, inviteAccess?: 'public' | 'private'): string {
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const accessParam = inviteAccess ? `?access=${inviteAccess}` : ''
+
+  return `${origin}/join/${inviteCode}${accessParam}`
 }
 
 // Get initials from name
@@ -277,10 +284,14 @@ export function getInitials(name: string): string {
 
 // Format date
 export function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('es-AR', {
+  const [year, month, day] = dateString.split('T')[0].split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+
+  return date.toLocaleDateString('es-AR', {
     day: 'numeric',
     month: 'short',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: 'UTC'
   })
 }
 

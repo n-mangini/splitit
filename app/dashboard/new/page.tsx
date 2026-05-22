@@ -3,38 +3,43 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
-import { ArrowLeft, Users, Plus, X } from 'lucide-react'
+import { ArrowLeft, Globe2, LockKeyhole, MailPlus, UserRoundPlus, Users, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+type InviteAccess = 'public' | 'private'
 
 export default function NewEventPage() {
   const router = useRouter()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [currency, setCurrency] = useState('ARS')
-  const [participants, setParticipants] = useState<string[]>([''])
+  const [inviteAccess, setInviteAccess] = useState<InviteAccess>('public')
+  const [publicParticipantNames, setPublicParticipantNames] = useState<string[]>([''])
+  const [privateInvitees, setPrivateInvitees] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const addParticipant = () => {
-    setParticipants([...participants, ''])
+  const addPublicParticipantName = () => {
+    setPublicParticipantNames([...publicParticipantNames, ''])
   }
 
-  const removeParticipant = (index: number) => {
-    if (participants.length > 1) {
-      setParticipants(participants.filter((_, i) => i !== index))
+  const removePublicParticipantName = (index: number) => {
+    if (publicParticipantNames.length > 1) {
+      setPublicParticipantNames(publicParticipantNames.filter((_, i) => i !== index))
     }
   }
 
-  const updateParticipant = (index: number, value: string) => {
-    const updated = [...participants]
+  const updatePublicParticipantName = (index: number, value: string) => {
+    const updated = [...publicParticipantNames]
     updated[index] = value
-    setParticipants(updated)
+    setPublicParticipantNames(updated)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,9 +51,19 @@ export default function NewEventPage() {
       return
     }
 
-    const validParticipants = participants.filter(p => p.trim())
-    if (validParticipants.length === 0) {
-      setError('Agrega al menos un participante')
+    const validPublicNames = publicParticipantNames.filter((participant) => participant.trim())
+    const validPrivateInvitees = privateInvitees
+      .split(/[,\n]/)
+      .map((invitee) => invitee.trim())
+      .filter(Boolean)
+
+    if (inviteAccess === 'public' && validPublicNames.length === 0) {
+      setError('Agrega al menos un nombre disponible para el link publico')
+      return
+    }
+
+    if (inviteAccess === 'private' && validPrivateInvitees.length === 0) {
+      setError('Agrega al menos un email o username permitido')
       return
     }
 
@@ -119,54 +134,117 @@ export default function NewEventPage() {
               </Select>
             </div>
 
-            {/* Participants */}
+            {/* Invite access */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Participantes *</Label>
-                <span className="text-xs text-muted-foreground">
-                  {participants.filter(p => p.trim()).length} agregados
-                </span>
-              </div>
-              
-              <p className="text-sm text-muted-foreground">
-                Agrega los nombres de las personas que participaran. Podras agregar mas luego.
-              </p>
-
-              <div className="space-y-2">
-                {participants.map((participant, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      placeholder={`Participante ${index + 1}`}
-                      value={participant}
-                      onChange={(e) => updateParticipant(index, e.target.value)}
-                      className="bg-input border-border"
-                    />
-                    {participants.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeParticipant(index)}
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
+              <div>
+                <Label>Tipo de invitacion *</Label>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Define que va a pasar cuando alguien abra el link del evento.
+                </p>
               </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addParticipant}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Agregar participante
-              </Button>
+              <div className="grid grid-cols-2 gap-2 rounded-[22px] bg-muted p-1">
+                <button
+                  type="button"
+                  onClick={() => setInviteAccess('public')}
+                  className={cn(
+                    'flex min-h-28 flex-col items-start rounded-[18px] px-3 py-3 text-left transition-colors',
+                    inviteAccess === 'public' ? 'bg-card text-primary shadow-[0_4px_16px_rgba(15,23,42,0.04)]' : 'text-muted-foreground'
+                  )}
+                >
+                  <Globe2 className="h-5 w-5" />
+                  <span className="mt-2 rounded-full bg-[#E8FAF5] px-2 py-0.5 text-[10px] font-black uppercase text-primary">
+                    Recomendado
+                  </span>
+                  <span className="mt-2 text-sm font-black">Publico</span>
+                  <span className="text-xs font-semibold leading-4">Cualquiera con link</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInviteAccess('private')}
+                  className={cn(
+                    'flex min-h-28 flex-col items-start rounded-[18px] px-3 py-3 text-left transition-colors',
+                    inviteAccess === 'private' ? 'bg-card text-secondary shadow-[0_4px_16px_rgba(15,23,42,0.04)]' : 'text-muted-foreground'
+                  )}
+                >
+                  <LockKeyhole className="h-5 w-5" />
+                  <span className="mt-2 text-sm font-black">Privado</span>
+                  <span className="text-xs font-semibold leading-4">Solo invitados</span>
+                </button>
+              </div>
             </div>
+
+            {inviteAccess === 'public' ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Nombres disponibles *</Label>
+                  <span className="text-xs text-muted-foreground">
+                    {publicParticipantNames.filter((participant) => participant.trim()).length} agregados
+                  </span>
+                </div>
+
+                <p className="text-sm text-muted-foreground">
+                  Las personas que entren sin cuenta van a elegir uno de estos nombres.
+                </p>
+
+                <div className="space-y-2">
+                  {publicParticipantNames.map((participant, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        placeholder={`Nombre ${index + 1}`}
+                        value={participant}
+                        onChange={(e) => updatePublicParticipantName(index, e.target.value)}
+                        className="bg-input border-border"
+                      />
+                      {publicParticipantNames.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removePublicParticipantName(index)}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addPublicParticipantName}
+                  className="gap-2"
+                >
+                  <UserRoundPlus className="h-4 w-4" />
+                  Agregar nombre
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Label htmlFor="privateInvitees">Invitados permitidos *</Label>
+                <p className="text-sm text-muted-foreground">
+                  Solo estas identidades podran aceptar el link privado al iniciar sesion.
+                </p>
+
+                <div className="relative">
+                  <MailPlus className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                  <Textarea
+                    id="privateInvitees"
+                    placeholder="maria@email.com, @carlos"
+                    value={privateInvitees}
+                    onChange={(event) => setPrivateInvitees(event.target.value)}
+                    className="min-h-[108px] bg-input pl-10"
+                  />
+                </div>
+
+                <p className="text-xs font-semibold leading-5 text-muted-foreground">
+                  Separa emails o usernames con comas o saltos de linea.
+                </p>
+              </div>
+            )}
 
             {error && (
               <p className="text-sm text-destructive">{error}</p>

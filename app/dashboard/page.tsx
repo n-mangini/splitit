@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { Plus, UserRound, UsersRound, WalletCards } from 'lucide-react'
+import { Link2, UserRound, UsersRound, WalletCards } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -42,21 +42,31 @@ function ActionCard({
   title,
   description,
   tone,
-  href,
   icon,
+  href,
 }: {
   title: string
   description: string
-  tone: 'green' | 'blue'
-  href: string
+  tone: 'green' | 'blue' | 'purple'
   icon: ReactNode
+  href?: string
 }) {
-  return (
-    <Link href={href} className="splitit-card block p-4 transition-transform active:scale-[0.98]">
+  const content = (
+    <>
       <IconCircle tone={tone}>{icon}</IconCircle>
       <h2 className="mt-4 text-base font-black text-foreground">{title}</h2>
       <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
+    </>
+  )
+
+  return href ? (
+    <Link href={href} className="splitit-card block p-4 transition-transform active:scale-[0.98]">
+      {content}
     </Link>
+  ) : (
+    <article className="splitit-card p-4">
+      {content}
+    </article>
   )
 }
 
@@ -94,11 +104,10 @@ export default function DashboardPage() {
           icon={<UsersRound className="h-6 w-6" />}
         />
         <ActionCard
-          title="Unirme a un evento"
-          description="Ingresa el codigo de un evento existente."
+          title="Invitacion por link"
+          description="La unica forma de sumarse es desde un link publico o privado."
           tone="blue"
-          href="/join/demo"
-          icon={<Plus className="h-6 w-6" />}
+          icon={<Link2 className="h-6 w-6" />}
         />
       </section>
 

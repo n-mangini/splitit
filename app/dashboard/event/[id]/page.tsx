@@ -9,6 +9,9 @@ import {
   CarFront,
   Check,
   ChevronRight,
+  Globe2,
+  LockKeyhole,
+  MailPlus,
   MoreVertical,
   Plane,
   Plus,
@@ -32,6 +35,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import {
   calculateBalances,
@@ -268,15 +272,19 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const event = mockEvents.find((item) => item.id === resolvedParams.id) ?? mockEvents[0]
   const [activeTab, setActiveTab] = useState<TabValue>('expenses')
   const [copied, setCopied] = useState(false)
+  const [inviteAccess, setInviteAccess] = useState(event.inviteAccess)
+  const [privateInvitees, setPrivateInvitees] = useState((event.privateInvitees ?? []).join(', '))
+  const accessChanged = inviteAccess !== event.inviteAccess
 
   const balances = calculateBalances(event)
   const settlements = calculateSettlements(balances)
   const totalExpenses = event.expenses.reduce((acc, expense) => acc + expense.amount, 0)
   const averageExpense = totalExpenses / event.participants.length
   const totalToPay = settlements.reduce((acc, settlement) => acc + settlement.amount, 0)
+  const inviteLink = getInviteLink(event.inviteCode, inviteAccess)
 
   const handleCopyLink = async () => {
-    await navigator.clipboard.writeText(getInviteLink(event.inviteCode))
+    await navigator.clipboard.writeText(inviteLink)
     setCopied(true)
     setTimeout(() => setCopied(false), 1600)
   }
@@ -301,11 +309,70 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 <DialogHeader>
                   <DialogTitle>Invitar al grupo</DialogTitle>
                   <DialogDescription>
-                    Comparte el link o el codigo para que otros se sumen.
+                    Comparte el link y elegi si cualquiera puede entrar o solo usuarios registrados.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-3">
-                  <Input readOnly value={getInviteLink(event.inviteCode)} className="rounded-[18px]" />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-2 rounded-[22px] bg-background p-1">
+                    <button
+                      type="button"
+                      onClick={() => setInviteAccess('public')}
+                      className={cn(
+                        'flex min-h-20 flex-col items-start rounded-[18px] px-3 py-3 text-left transition-colors',
+                        inviteAccess === 'public' ? 'bg-card text-primary shadow-[0_4px_16px_rgba(15,23,42,0.04)]' : 'text-muted-foreground'
+                      )}
+                    >
+                      <Globe2 className="h-5 w-5" />
+                      <span className="mt-2 rounded-full bg-[#E8FAF5] px-2 py-0.5 text-[10px] font-black uppercase text-primary">
+                        Recomendado
+                      </span>
+                      <span className="mt-2 text-sm font-black">Publico</span>
+                      <span className="text-xs font-semibold">Cualquiera con link</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInviteAccess('private')}
+                      className={cn(
+                        'flex min-h-20 flex-col items-start rounded-[18px] px-3 py-3 text-left transition-colors',
+                        inviteAccess === 'private' ? 'bg-card text-secondary shadow-[0_4px_16px_rgba(15,23,42,0.04)]' : 'text-muted-foreground'
+                      )}
+                    >
+                      <LockKeyhole className="h-5 w-5" />
+                      <span className="mt-2 text-sm font-black">Privado</span>
+                      <span className="text-xs font-semibold">Solo registrados</span>
+                    </button>
+                  </div>
+                  <div className="rounded-[20px] border border-border bg-background p-3 text-sm font-semibold text-muted-foreground">
+                    {inviteAccess === 'public'
+                      ? 'Con link publico, cada invitado elige su nombre desde la lista de participantes.'
+                      : 'Con link privado, solo pueden unirse las personas que agregues por email o username.'}
+                  </div>
+                  {inviteAccess === 'private' && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-black text-foreground" htmlFor="private-invitees">
+                        Invitados permitidos
+                      </label>
+                      <div className="relative">
+                        <MailPlus className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                        <Textarea
+                          id="private-invitees"
+                          value={privateInvitees}
+                          onChange={(item) => setPrivateInvitees(item.target.value)}
+                          placeholder="mail@ejemplo.com, @usuario"
+                          className="min-h-24 rounded-[18px] pl-10"
+                        />
+                      </div>
+                      <p className="text-xs font-semibold leading-5 text-muted-foreground">
+                        En produccion, esta lista se valida en backend antes de asociar el usuario al evento.
+                      </p>
+                    </div>
+                  )}
+                  {accessChanged && (
+                    <p className="text-xs font-semibold leading-5 text-muted-foreground">
+                      Este cambio deberia guardarse en backend como nueva politica de acceso del evento.
+                    </p>
+                  )}
+                  <Input readOnly value={inviteLink} className="rounded-[18px]" />
                   <Button onClick={handleCopyLink} className="w-full rounded-[18px]">
                     {copied ? <Check className="mr-2 h-4 w-4" /> : <Share2 className="mr-2 h-4 w-4" />}
                     {copied ? 'Copiado' : 'Copiar link'}
