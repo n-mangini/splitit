@@ -2,10 +2,11 @@
 
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { ChevronRight, Link2, Plane, Plus, Search } from 'lucide-react'
+import { ChevronRight, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { calculateBalances, formatCurrency, mockEvents } from '@/lib/mock-data'
+import { getEventIcon } from '@/lib/event-icons'
 
 function IconCircle({
   children,
@@ -34,12 +35,13 @@ function GroupCard({ event }: { event: (typeof mockEvents)[number] }) {
   const isPositive = userBalance > 0
   const isNegative = userBalance < 0
   const balanceLabel = isPositive ? 'te deben' : isNegative ? 'debes' : 'esta todo claro'
+  const { Icon } = getEventIcon(event.icon)
 
   return (
     <Link href={`/dashboard/event/${event.id}`} className="splitit-card block p-4 transition-transform active:scale-[0.98]">
       <div className="flex items-center gap-4">
         <IconCircle tone={event.id === 'event-1' ? 'blue' : event.id === 'event-2' ? 'purple' : 'green'}>
-          <Plane className="h-6 w-6" />
+          <Icon className="h-6 w-6" />
         </IconCircle>
 
         <div className="min-w-0 flex-1">
@@ -89,17 +91,13 @@ export default function GroupsPage() {
         </Link>
       </header>
 
-      <section className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+      <section>
         <div className="flex h-14 items-center gap-3 rounded-[20px] border border-border bg-card px-4">
           <Search className="h-5 w-5 text-muted-foreground" />
           <input
             className="h-full flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-muted-foreground"
             placeholder="Buscar evento"
           />
-        </div>
-        <div className="flex min-h-14 items-center gap-3 rounded-[20px] border border-border bg-card px-4 text-sm font-semibold text-muted-foreground">
-          <Link2 className="h-5 w-5 shrink-0 text-[#2D9CDB]" />
-          <span>Para sumarte a otro evento, abri su link de invitacion.</span>
         </div>
       </section>
 

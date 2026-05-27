@@ -18,12 +18,15 @@ export interface Expense {
   id: string
   eventId: string
   name: string
-  amount: number
+  amount: number // stored in the event's currency
   paidBy: string // participant id
   splitBetween: string[] // participant ids
   date: string
   category?: ExpenseCategory
   createdAt: string
+  originalAmount?: number // amount as entered, before conversion
+  originalCurrency?: string // ISO currency of originalAmount, set only when it differs from the event currency
+  exchangeRate?: number // amount === originalAmount * exchangeRate, snapshot at registration time
 }
 
 export type ExpenseCategory = 
@@ -47,6 +50,7 @@ export interface Event {
   inviteAccess: 'public' | 'private'
   privateInvitees?: string[]
   currency: string
+  icon?: import('./event-icons').EventIcon
 }
 
 export interface Balance {

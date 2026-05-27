@@ -1,7 +1,7 @@
 'use client'
 
 import type { FormEvent, ReactNode } from 'react'
-import { use, useState } from 'react'
+import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -12,16 +12,12 @@ import {
   Globe2,
   LockKeyhole,
   MailPlus,
-  MoreVertical,
-  Plane,
+  Pencil,
   Plus,
   ReceiptText,
   Search,
   Share2,
   ShoppingCart,
-  SlidersHorizontal,
-  Sparkles,
-  UserPlus,
   UsersRound,
   WalletCards,
 } from 'lucide-react'
@@ -48,7 +44,11 @@ import {
   getInviteLink,
   mockEvents,
 } from '@/lib/mock-data'
-import { Expense, ExpenseCategory } from '@/lib/types'
+import { getExchangeRates } from '@/lib/exchange'
+import { EventIcon, eventIcons, getEventIcon } from '@/lib/event-icons'
+import { Event, Expense, ExpenseCategory } from '@/lib/types'
+
+const supportedCurrencies = ['ARS', 'USD', 'EUR', 'BRL', 'UYU', 'CLP'] as const
 
 type TabValue = 'expenses' | 'balances' | 'members'
 
@@ -151,9 +151,23 @@ function expenseIcon(expense: Expense) {
   return <ReceiptText className="h-5 w-5" />
 }
 
-function ExpenseCard({ expense, paidBy }: { expense: Expense; paidBy?: string }) {
+function ExpenseCard({
+  expense,
+  paidBy,
+  currency,
+  onSelect,
+}: {
+  expense: Expense
+  paidBy?: string
+  currency: string
+  onSelect: () => void
+}) {
   return (
-    <article className="splitit-card p-4">
+    <button
+      type="button"
+      onClick={onSelect}
+      className="splitit-card w-full p-4 text-left transition-transform active:scale-[0.99]"
+    >
       <div className="flex items-center gap-3">
         <IconCircle tone={expense.category === 'transport' ? 'purple' : 'green'} size="sm">
           {expenseIcon(expense)}
@@ -171,11 +185,16 @@ function ExpenseCard({ expense, paidBy }: { expense: Expense; paidBy?: string })
         </div>
 
         <div className="text-right">
-          <p className="text-sm font-black text-primary">{formatCurrency(expense.amount)}</p>
+          <p className="text-sm font-black text-primary">{formatCurrency(expense.amount, currency)}</p>
+          {expense.originalCurrency && expense.originalAmount !== undefined && (
+            <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">
+              {formatCurrency(expense.originalAmount, expense.originalCurrency)} {expense.originalCurrency}
+            </p>
+          )}
           <ChevronRight className="ml-auto mt-2 h-5 w-5 text-muted-foreground" />
         </div>
       </div>
-    </article>
+    </button>
   )
 }
 
@@ -186,19 +205,19 @@ function BalanceSummaryCard({ suggestedPayments, totalToPay }: { suggestedPaymen
         <IconCircle tone="green">
           <WalletCards className="h-6 w-6" />
         </IconCircle>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <h3 className="text-base font-black text-foreground">Quien le debe a quien</h3>
           <p className="mt-1 text-sm leading-5 text-muted-foreground">
             Con las cuentas sugeridas, todos quedan en $0.
           </p>
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold text-muted-foreground">Cuentas sugeridas</p>
-              <p className="text-xl font-black text-foreground">{suggestedPayments}</p>
+              <p className="truncate text-xl font-black text-foreground">{suggestedPayments}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold text-muted-foreground">Monto a pagar</p>
-              <p className="text-xl font-black text-primary">{formatCurrency(totalToPay)}</p>
+              <p className="truncate text-xl font-black text-primary">{formatCurrency(totalToPay)}</p>
             </div>
           </div>
         </div>
@@ -218,25 +237,25 @@ function SuggestedPaymentCard({
 }) {
   return (
     <article className="splitit-card p-4">
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F0E9FF] text-sm font-black text-secondary">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F0E9FF] text-xs font-black text-secondary sm:h-11 sm:w-11 sm:text-sm">
           {getInitials(from)}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-black text-foreground">{from}</p>
-          <p className="text-xs font-semibold text-muted-foreground">debe pagar</p>
+          <p className="hidden text-xs font-semibold text-muted-foreground sm:block">debe pagar</p>
         </div>
-        <ArrowRight className="h-5 w-5 shrink-0 text-primary" />
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E8FAF5] text-sm font-black text-primary">
+        <ArrowRight className="h-4 w-4 shrink-0 text-primary sm:h-5 sm:w-5" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E8FAF5] text-xs font-black text-primary sm:h-11 sm:w-11 sm:text-sm">
           {getInitials(to)}
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-black text-foreground">{to}</p>
-          <p className="text-xs font-semibold text-muted-foreground">debe recibir</p>
+          <p className="hidden text-xs font-semibold text-muted-foreground sm:block">debe recibir</p>
         </div>
-        <div className="text-right">
+        <div className="shrink-0 text-right">
           <p className="text-sm font-black text-primary">{formatCurrency(amount)}</p>
-          <ChevronRight className="ml-auto mt-2 h-5 w-5 text-muted-foreground" />
+          <ChevronRight className="ml-auto mt-2 hidden h-5 w-5 text-muted-foreground sm:block" />
         </div>
       </div>
     </article>
@@ -266,7 +285,7 @@ function MemberBalanceRow({ name, amount }: { name: string; amount: number }) {
       </div>
       <p
         className={cn(
-          'text-sm font-black',
+          'shrink-0 text-sm font-black',
           amount > 0 && 'text-primary',
           amount < 0 && 'text-secondary',
           amount === 0 && 'text-foreground'
@@ -288,13 +307,53 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [inviteAccess, setInviteAccess] = useState(event.inviteAccess)
   const [privateInvitees, setPrivateInvitees] = useState((event.privateInvitees ?? []).join(', '))
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false)
+  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null)
+  const [iconValue, setIconValue] = useState<EventIcon>(event.icon ?? 'plane')
+  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false)
+  const { Icon: EventIconComponent } = getEventIcon(iconValue)
+  const [eventDescription, setEventDescription] = useState(event.description ?? '')
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(false)
+  const [descriptionDraft, setDescriptionDraft] = useState(eventDescription)
   const [expenseName, setExpenseName] = useState('')
   const [expenseAmount, setExpenseAmount] = useState('')
+  const [expenseCurrency, setExpenseCurrency] = useState(event.currency)
   const [expensePaidBy, setExpensePaidBy] = useState(event.participants[0]?.id ?? '')
   const [expenseCategory, setExpenseCategory] = useState<ExpenseCategory>('food')
   const [splitBetween, setSplitBetween] = useState<string[]>(event.participants.map((participant) => participant.id))
   const [expenseError, setExpenseError] = useState('')
+  const [rates, setRates] = useState<Record<string, number> | null>(null)
+  const [ratesLoading, setRatesLoading] = useState(false)
+  const [ratesError, setRatesError] = useState('')
   const accessChanged = inviteAccess !== event.inviteAccess
+  const needsConversion = expenseCurrency !== event.currency
+  const amountNumber = Number(expenseAmount)
+  const isValidAmount = Number.isFinite(amountNumber) && amountNumber > 0
+  const conversionRate =
+    needsConversion && rates && rates[expenseCurrency] && rates[event.currency]
+      ? rates[event.currency] / rates[expenseCurrency]
+      : null
+  const convertedAmount =
+    needsConversion && isValidAmount && conversionRate ? amountNumber * conversionRate : null
+
+  useEffect(() => {
+    if (!isAddExpenseOpen || !needsConversion || rates) return
+    let cancelled = false
+    setRatesLoading(true)
+    setRatesError('')
+    getExchangeRates()
+      .then((fetched) => {
+        if (!cancelled) setRates(fetched)
+      })
+      .catch((error: Error) => {
+        if (!cancelled) setRatesError(error.message)
+      })
+      .finally(() => {
+        if (!cancelled) setRatesLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isAddExpenseOpen, needsConversion, rates])
 
   const eventSnapshot = { ...event, expenses }
   const balances = calculateBalances(eventSnapshot)
@@ -321,6 +380,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const resetExpenseForm = () => {
     setExpenseName('')
     setExpenseAmount('')
+    setExpenseCurrency(event.currency)
     setExpensePaidBy(event.participants[0]?.id ?? '')
     setExpenseCategory('food')
     setSplitBetween(event.participants.map((participant) => participant.id))
@@ -353,17 +413,40 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       return
     }
 
+    let storedAmount = amount
+    let originalAmount: number | undefined
+    let originalCurrency: string | undefined
+    let exchangeRate: number | undefined
+
+    if (needsConversion) {
+      if (ratesLoading) {
+        setExpenseError('Esperando el tipo de cambio...')
+        return
+      }
+      if (!rates || !conversionRate) {
+        setExpenseError(ratesError || 'No se pudo obtener el tipo de cambio')
+        return
+      }
+      storedAmount = Math.round(amount * conversionRate * 100) / 100
+      originalAmount = amount
+      originalCurrency = expenseCurrency
+      exchangeRate = conversionRate
+    }
+
     setExpenses((current) => [
       {
         id: `exp-local-${Date.now()}`,
         eventId: event.id,
         name: expenseName.trim(),
-        amount,
+        amount: storedAmount,
         paidBy: expensePaidBy,
         splitBetween,
         date: new Date().toISOString().slice(0, 10),
         category: expenseCategory,
         createdAt: new Date().toISOString(),
+        originalAmount,
+        originalCurrency,
+        exchangeRate,
       },
       ...current,
     ])
@@ -462,32 +545,41 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
               </DialogContent>
             </Dialog>
-            <Button variant="ghost" size="icon" className="h-11 w-11 rounded-full bg-card">
-              <MoreVertical className="h-5 w-5" />
-            </Button>
           </div>
         </div>
 
         <div className="flex items-center gap-4 lg:items-end lg:justify-between">
           <div className="flex items-center gap-4">
-            <IconCircle tone="blue" size="lg">
-              <Plane className="h-7 w-7" />
-            </IconCircle>
+            <button
+              type="button"
+              onClick={() => setIsIconPickerOpen(true)}
+              className="group relative"
+              aria-label="Cambiar icono del evento"
+            >
+              <IconCircle tone="blue" size="lg">
+                <EventIconComponent className="h-7 w-7" />
+              </IconCircle>
+              <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-card text-foreground shadow-[0_2px_8px_rgba(15,23,42,0.12)] transition-transform group-hover:scale-110">
+                <Pencil className="h-3 w-3" />
+              </span>
+            </button>
             <div>
               <h1 className="text-2xl font-black text-foreground lg:text-4xl">{event.name}</h1>
               <p className="mt-1 max-w-xl text-sm font-semibold text-muted-foreground lg:text-base">
-                {event.participants.length} integrantes · {expenses.length} gastos · {event.description}
+                {event.participants.length} integrantes · {expenses.length} gastos
+                {eventDescription && ` · ${eventDescription}`}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDescriptionDraft(eventDescription)
+                    setIsDescriptionOpen(true)
+                  }}
+                  className="ml-2 inline-flex items-center gap-1 align-middle text-xs font-black text-primary hover:underline"
+                >
+                  <Pencil className="h-3 w-3" />
+                  {eventDescription ? 'Editar descripcion' : 'Agregar descripcion'}
+                </button>
               </p>
-            </div>
-          </div>
-          <div className="hidden gap-3 lg:flex">
-            <div className="rounded-[20px] bg-background px-5 py-3">
-              <p className="text-xs font-bold text-muted-foreground">Total</p>
-              <p className="text-lg font-black text-foreground">{formatCurrency(totalExpenses)}</p>
-            </div>
-            <div className="rounded-[20px] bg-background px-5 py-3">
-              <p className="text-xs font-bold text-muted-foreground">Promedio</p>
-              <p className="text-lg font-black text-foreground">{formatCurrency(averageExpense)}</p>
             </div>
           </div>
         </div>
@@ -497,16 +589,21 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
       {activeTab === 'expenses' && (
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-black text-foreground lg:text-3xl">Gastos</h2>
-                <p className="text-sm text-muted-foreground">{expenses.length} movimientos</p>
-              </div>
-              <Button variant="outline" className="h-10 rounded-[16px] border-border bg-card font-black">
-                <SlidersHorizontal className="mr-2 h-4 w-4" />
-                Filtrar
-              </Button>
+          <aside className="splitit-card grid grid-cols-2 gap-3 p-4 lg:sticky lg:top-28 lg:col-start-2 lg:row-start-1 lg:block lg:space-y-4 lg:p-5">
+            <div className="lg:rounded-[20px] lg:bg-background lg:p-4">
+              <p className="text-xs font-bold text-muted-foreground">Total de gastos</p>
+              <p className="mt-1 text-xl font-black text-foreground">{formatCurrency(totalExpenses)}</p>
+            </div>
+            <div className="lg:rounded-[20px] lg:bg-background lg:p-4">
+              <p className="text-xs font-bold text-muted-foreground">Gasto promedio</p>
+              <p className="mt-1 text-xl font-black text-foreground">{formatCurrency(averageExpense)}</p>
+            </div>
+          </aside>
+
+          <div className="space-y-4 lg:col-start-1 lg:row-start-1">
+            <div>
+              <h2 className="text-2xl font-black text-foreground lg:text-3xl">Gastos</h2>
+              <p className="text-sm text-muted-foreground">{expenses.length} movimientos</p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
@@ -545,7 +642,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-[1fr_auto] gap-3">
                       <div className="space-y-2">
                         <Label htmlFor="expense-amount">Monto</Label>
                         <Input
@@ -558,20 +655,59 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Categoria</Label>
-                        <Select value={expenseCategory} onValueChange={(value) => setExpenseCategory(value as ExpenseCategory)}>
-                          <SelectTrigger className="h-10 rounded-[18px]">
+                        <Label>Moneda</Label>
+                        <Select value={expenseCurrency} onValueChange={setExpenseCurrency}>
+                          <SelectTrigger className="h-10 w-[110px] rounded-[18px]">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {expenseCategories.map((category) => (
-                              <SelectItem key={category.value} value={category.value}>
-                                {category.label}
+                            {supportedCurrencies.map((code) => (
+                              <SelectItem key={code} value={code}>
+                                {code}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+
+                    {needsConversion && (
+                      <div className="rounded-[16px] border border-border bg-background px-3 py-2 text-xs font-semibold">
+                        {ratesLoading && (
+                          <span className="text-muted-foreground">Obteniendo tipo de cambio...</span>
+                        )}
+                        {!ratesLoading && ratesError && (
+                          <span className="text-destructive">{ratesError}</span>
+                        )}
+                        {!ratesLoading && !ratesError && conversionRate && (
+                          <div className="flex flex-col gap-0.5 text-muted-foreground">
+                            <span>
+                              1 {expenseCurrency} = {conversionRate.toLocaleString('es-AR', { maximumFractionDigits: 4 })} {event.currency}
+                            </span>
+                            {convertedAmount !== null && (
+                              <span className="text-foreground">
+                                Se guardara como {formatCurrency(convertedAmount, event.currency)}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label>Categoria</Label>
+                      <Select value={expenseCategory} onValueChange={(value) => setExpenseCategory(value as ExpenseCategory)}>
+                        <SelectTrigger className="h-10 rounded-[18px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {expenseCategories.map((category) => (
+                            <SelectItem key={category.value} value={category.value}>
+                              {category.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="space-y-2">
@@ -646,42 +782,27 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               {expenses.map((expense) => {
                 const payer = event.participants.find((participant) => participant.id === expense.paidBy)
 
-                return <ExpenseCard key={expense.id} expense={expense} paidBy={payer?.name} />
+                return (
+                  <ExpenseCard
+                    key={expense.id}
+                    expense={expense}
+                    paidBy={payer?.name}
+                    currency={event.currency}
+                    onSelect={() => setSelectedExpenseId(expense.id)}
+                  />
+                )
               })}
             </div>
           </div>
-
-          <aside className="splitit-card grid grid-cols-2 gap-3 p-4 lg:sticky lg:top-28 lg:block lg:space-y-4 lg:p-5">
-            <div className="lg:rounded-[20px] lg:bg-background lg:p-4">
-              <p className="text-xs font-bold text-muted-foreground">Total de gastos</p>
-              <p className="mt-1 text-xl font-black text-foreground">{formatCurrency(totalExpenses)}</p>
-            </div>
-            <div className="lg:rounded-[20px] lg:bg-background lg:p-4">
-              <p className="text-xs font-bold text-muted-foreground">Gasto promedio</p>
-              <p className="mt-1 text-xl font-black text-foreground">{formatCurrency(averageExpense)}</p>
-            </div>
-            <div className="hidden rounded-[20px] bg-[#F0E9FF] p-4 lg:block">
-              <p className="text-xs font-bold text-secondary">Mas activo</p>
-              <p className="mt-1 text-lg font-black text-foreground">
-                {event.participants[0]?.name ?? 'Sin datos'}
-              </p>
-            </div>
-          </aside>
         </section>
       )}
 
       {activeTab === 'balances' && (
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-          <div className="space-y-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-black text-foreground lg:text-3xl">Saldos</h2>
-                <p className="text-sm text-muted-foreground">Quien le debe a quien</p>
-              </div>
-              <Button variant="outline" className="h-10 rounded-[16px] border-border bg-card font-black">
-                <Sparkles className="mr-2 h-4 w-4 text-primary" />
-                Simplificar
-              </Button>
+          <div className="min-w-0 space-y-5">
+            <div className="min-w-0">
+              <h2 className="text-2xl font-black text-foreground lg:text-3xl">Saldos</h2>
+              <p className="truncate text-sm text-muted-foreground">Quien le debe a quien</p>
             </div>
 
             <BalanceSummaryCard suggestedPayments={settlements.length} totalToPay={totalToPay} />
@@ -689,7 +810,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             <div className="space-y-3">
               <h3 className="text-base font-black text-foreground">Cuentas sugeridas</h3>
               {settlements.length > 0 ? (
-                <div className="grid gap-3 xl:grid-cols-2">
+                <div className="grid gap-3 xl:grid-cols-2 [&>*]:min-w-0">
                   {settlements.map((settlement) => (
                     <SuggestedPaymentCard
                       key={`${settlement.from}-${settlement.to}-${settlement.amount}`}
@@ -709,7 +830,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
 
-          <aside className="splitit-card space-y-2 p-3 lg:sticky lg:top-28">
+          <aside className="splitit-card min-w-0 space-y-2 p-3 lg:sticky lg:top-28">
             <h3 className="px-1 pb-1 text-base font-black text-foreground">Saldo por integrante</h3>
             {balances.map((balance) => (
               <MemberBalanceRow
@@ -724,15 +845,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
       {activeTab === 'members' && (
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-black text-foreground lg:text-3xl">Integrantes</h2>
-              <p className="hidden text-sm text-muted-foreground lg:block">Personas incluidas en este grupo.</p>
-            </div>
-            <Button className="h-10 rounded-[16px] bg-primary font-black text-primary-foreground">
-              <UserPlus className="mr-2 h-4 w-4" />
-              Agregar
-            </Button>
+          <div>
+            <h2 className="text-2xl font-black text-foreground lg:text-3xl">Integrantes</h2>
+            <p className="hidden text-sm text-muted-foreground lg:block">Personas incluidas en este grupo.</p>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -753,6 +868,177 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </section>
       )}
+
+      <ExpenseDetailDialog
+        expense={expenses.find((item) => item.id === selectedExpenseId) ?? null}
+        participants={event.participants}
+        currency={event.currency}
+        onClose={() => setSelectedExpenseId(null)}
+      />
+
+      <Dialog open={isDescriptionOpen} onOpenChange={setIsDescriptionOpen}>
+        <DialogContent className="rounded-[24px]">
+          <DialogHeader>
+            <DialogTitle>{eventDescription ? 'Editar descripcion' : 'Agregar descripcion'}</DialogTitle>
+            <DialogDescription>Aparece debajo del nombre del evento.</DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(item) => {
+              item.preventDefault()
+              const trimmed = descriptionDraft.trim()
+              setEventDescription(trimmed)
+              event.description = trimmed || undefined
+              setIsDescriptionOpen(false)
+            }}
+            className="space-y-4"
+          >
+            <Textarea
+              value={descriptionDraft}
+              onChange={(item) => setDescriptionDraft(item.target.value)}
+              placeholder="Una descripcion corta del evento"
+              className="min-h-24 rounded-[18px]"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-[18px]"
+                onClick={() => setIsDescriptionOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" className="rounded-[18px]">
+                Guardar
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isIconPickerOpen} onOpenChange={setIsIconPickerOpen}>
+        <DialogContent className="rounded-[24px]">
+          <DialogHeader>
+            <DialogTitle>Elegi un icono</DialogTitle>
+            <DialogDescription>
+              Lo vas a ver en el header del evento y en la lista de tus eventos.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-4 gap-3">
+            {eventIcons.map(({ value, label, Icon }) => {
+              const isSelected = value === iconValue
+
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    setIconValue(value)
+                    event.icon = value
+                    setIsIconPickerOpen(false)
+                  }}
+                  className={cn(
+                    'flex flex-col items-center gap-2 rounded-[18px] border p-3 transition-colors',
+                    isSelected
+                      ? 'border-primary bg-[#E8FAF5] text-primary'
+                      : 'border-border bg-background text-foreground hover:border-primary/40'
+                  )}
+                >
+                  <Icon className="h-6 w-6" />
+                  <span className="text-xs font-black">{label}</span>
+                </button>
+              )
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+function ExpenseDetailDialog({
+  expense,
+  participants,
+  currency,
+  onClose,
+}: {
+  expense: Expense | null
+  participants: Event['participants']
+  currency: string
+  onClose: () => void
+}) {
+  const payer = expense ? participants.find((participant) => participant.id === expense.paidBy) : undefined
+  const sharePerPerson = expense ? expense.amount / expense.splitBetween.length : 0
+  const splitParticipants = expense
+    ? expense.splitBetween
+        .map((id) => participants.find((participant) => participant.id === id))
+        .filter((participant): participant is NonNullable<typeof participant> => Boolean(participant))
+    : []
+
+  return (
+    <Dialog open={expense !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto rounded-[24px]">
+        {expense && (
+          <>
+            <DialogHeader>
+              <DialogTitle>{expense.name}</DialogTitle>
+              <DialogDescription>{formatDate(expense.date)}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="rounded-[20px] bg-[#E8FAF5] p-4">
+                <p className="text-xs font-bold text-muted-foreground">Total</p>
+                <p className="mt-1 text-2xl font-black text-primary">
+                  {formatCurrency(expense.amount, currency)}
+                </p>
+                {expense.originalCurrency && expense.originalAmount !== undefined && expense.exchangeRate && (
+                  <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                    Original: {formatCurrency(expense.originalAmount, expense.originalCurrency)} {expense.originalCurrency}
+                    {' · '}
+                    1 {expense.originalCurrency} = {expense.exchangeRate.toLocaleString('es-AR', { maximumFractionDigits: 4 })} {currency}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-[18px] border border-border bg-background p-3">
+                  <p className="text-xs font-bold text-muted-foreground">Pago</p>
+                  <p className="mt-1 text-sm font-black text-foreground">{payer?.name ?? 'Sin asignar'}</p>
+                </div>
+                <div className="rounded-[18px] border border-border bg-background p-3">
+                  <p className="text-xs font-bold text-muted-foreground">Categoria</p>
+                  <p className="mt-1 text-sm font-black text-foreground">
+                    <CategoryBadge category={expense.category} />
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-black text-foreground">Dividido entre</p>
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    {formatCurrency(sharePerPerson, currency)} c/u
+                  </p>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {splitParticipants.map((participant) => (
+                    <div
+                      key={participant.id}
+                      className="flex items-center gap-3 rounded-[18px] border border-border bg-background p-3"
+                    >
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-xs font-black text-foreground">
+                        {getInitials(participant.name)}
+                      </div>
+                      <p className="flex-1 text-sm font-bold text-foreground">{participant.name}</p>
+                      <p className="text-sm font-black text-primary">
+                        {formatCurrency(sharePerPerson, currency)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }

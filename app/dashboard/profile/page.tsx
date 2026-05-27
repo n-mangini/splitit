@@ -8,12 +8,10 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
-import { 
-  User, 
-  Mail, 
-  Lock, 
-  Bell, 
-  Moon, 
+import {
+  User,
+  Lock,
+  Bell,
   Globe,
   LogOut,
   Trash2,
@@ -31,7 +29,6 @@ export default function ProfilePage() {
   // Settings state
   const [notifications, setNotifications] = useState(true)
   const [emailNotifications, setEmailNotifications] = useState(true)
-  const [darkMode, setDarkMode] = useState(true)
 
   const handleSave = async () => {
     setIsLoading(true)
@@ -193,25 +190,6 @@ export default function ProfilePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Modo oscuro</p>
-              <p className="text-sm text-muted-foreground">Usar tema oscuro siempre</p>
-            </div>
-            <Switch 
-              checked={darkMode} 
-              onCheckedChange={setDarkMode}
-            />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Idioma</p>
-              <p className="text-sm text-muted-foreground">Espanol (Argentina)</p>
-            </div>
-            <Button variant="outline" size="sm">Cambiar</Button>
-          </div>
-          <Separator />
           <div className="flex items-center justify-between">
             <div>
               <p className="font-medium text-foreground">Moneda predeterminada</p>

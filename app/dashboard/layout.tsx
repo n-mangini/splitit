@@ -73,17 +73,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </Link>
       </aside>
 
-      <header className="sticky top-0 z-30 hidden border-b border-border/70 bg-background/85 backdrop-blur-xl lg:block">
-        <div className="py-5 pl-[344px] pr-10">
-          <div className="mx-auto flex max-w-7xl items-center justify-between">
-            <div>
-              <p className="text-sm font-bold text-muted-foreground">Gastos compartidos</p>
-              <p className="text-xl font-black text-foreground">Workspace personal</p>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <main className="mx-auto min-h-screen w-full max-w-md px-5 pb-28 pt-6 sm:max-w-2xl sm:px-8 md:max-w-4xl lg:max-w-none lg:pb-12 lg:pl-[344px] lg:pr-10 lg:pt-8">
         <div className="mx-auto w-full lg:max-w-7xl">{children}</div>
       </main>

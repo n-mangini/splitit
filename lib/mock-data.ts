@@ -125,7 +125,8 @@ export const mockEvents: Event[] = [
     createdAt: '2024-01-10T08:00:00Z',
     inviteCode: 'BARI2024',
     inviteAccess: 'public',
-    currency: 'ARS'
+    currency: 'ARS',
+    icon: 'plane'
   },
   {
     id: 'event-2',
@@ -138,7 +139,8 @@ export const mockEvents: Event[] = [
     inviteCode: 'DEPTO01',
     inviteAccess: 'private',
     privateInvitees: ['maria@email.com', 'carlos@email.com'],
-    currency: 'ARS'
+    currency: 'ARS',
+    icon: 'home'
   },
   {
     id: 'event-3',
@@ -150,7 +152,8 @@ export const mockEvents: Event[] = [
     createdAt: '2024-02-01T10:00:00Z',
     inviteCode: 'ANA2024',
     inviteAccess: 'public',
-    currency: 'ARS'
+    currency: 'ARS',
+    icon: 'party'
   },
 ]
 
