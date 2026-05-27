@@ -5,13 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import {
   User,
   Lock,
-  Bell,
   Globe,
   LogOut,
   Trash2,
@@ -25,10 +23,6 @@ export default function ProfilePage() {
   const [email, setEmail] = useState(mockCurrentUser.email)
   const [isLoading, setIsLoading] = useState(false)
   const [saved, setSaved] = useState(false)
-
-  // Settings state
-  const [notifications, setNotifications] = useState(true)
-  const [emailNotifications, setEmailNotifications] = useState(true)
 
   const handleSave = async () => {
     setIsLoading(true)
@@ -138,42 +132,6 @@ export default function ProfilePage() {
               <p className="text-sm text-muted-foreground">Gestiona tus dispositivos conectados</p>
             </div>
             <Button variant="outline">Ver sesiones</Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Notifications Card */}
-      <Card className="bg-card border-border mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Bell className="h-5 w-5 text-primary" />
-            Notificaciones
-          </CardTitle>
-          <CardDescription>
-            Configura como queres recibir avisos
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Notificaciones push</p>
-              <p className="text-sm text-muted-foreground">Recibir avisos en el navegador</p>
-            </div>
-            <Switch 
-              checked={notifications} 
-              onCheckedChange={setNotifications}
-            />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Notificaciones por email</p>
-              <p className="text-sm text-muted-foreground">Resumen de actividad semanal</p>
-            </div>
-            <Switch 
-              checked={emailNotifications} 
-              onCheckedChange={setEmailNotifications}
-            />
           </div>
         </CardContent>
       </Card>
