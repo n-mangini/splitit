@@ -70,30 +70,6 @@ function ActionCard({
   )
 }
 
-function StatCard({
-  label,
-  value,
-  tone = 'green',
-  icon,
-}: {
-  label: string
-  value: string
-  tone?: 'green' | 'purple' | 'blue'
-  icon: ReactNode
-}) {
-  return (
-    <article className="splitit-card p-4">
-      <div className="flex items-center gap-3">
-        <IconCircle tone={tone}>{icon}</IconCircle>
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-muted-foreground">{label}</p>
-          <p className="mt-1 truncate text-lg font-black text-foreground">{value}</p>
-        </div>
-      </div>
-    </article>
-  )
-}
-
 function BalanceBucketCard({
   title,
   count,
@@ -135,10 +111,6 @@ export default function DashboardPage() {
     const netBalance = calculateBalances(event).find((balance) => balance.participantId === 'p-1')?.netBalance ?? 0
     return { event, netBalance }
   })
-  const netBalance = mockEvents.reduce((acc, event) => {
-    const eventBalance = calculateBalances(event).find((balance) => balance.participantId === 'p-1')?.netBalance ?? 0
-    return acc + eventBalance
-  }, 0)
   const favorableSplits = eventBalances.filter((item) => item.netBalance > 0)
   const pendingSplits = eventBalances.filter((item) => item.netBalance < 0)
   const settledSplits = eventBalances.filter((item) => item.netBalance === 0)
@@ -172,21 +144,6 @@ export default function DashboardPage() {
           description="Inicia un nuevo evento y empeza a dividir gastos."
           tone="green"
           href="/dashboard/new"
-          icon={<UsersRound className="h-6 w-6" />}
-        />
-      </section>
-
-      <section className="grid grid-cols-2 gap-4">
-        <StatCard
-          label="Balance neto"
-          value={formatCurrency(Math.abs(netBalance))}
-          tone={netBalance < 0 ? 'purple' : 'green'}
-          icon={<WalletCards className="h-6 w-6" />}
-        />
-        <StatCard
-          label="Splits activos"
-          value={`${favorableSplits.length + pendingSplits.length}`}
-          tone="blue"
           icon={<UsersRound className="h-6 w-6" />}
         />
       </section>

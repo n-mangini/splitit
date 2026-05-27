@@ -8,8 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Eye, EyeOff, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -17,7 +16,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [acceptTerms, setAcceptTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -32,11 +30,6 @@ export default function RegisterPage() {
 
     if (password.length < 6) {
       setError('La contrasena debe tener al menos 6 caracteres')
-      return
-    }
-
-    if (!acceptTerms) {
-      setError('Debes aceptar los terminos y condiciones')
       return
     }
 
@@ -150,20 +143,6 @@ export default function RegisterPage() {
                   )}
                 </div>
 
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="terms"
-                    checked={acceptTerms}
-                    onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
-                  />
-                  <label htmlFor="terms" className="text-sm text-muted-foreground leading-tight">
-                    Acepto los{' '}
-                    <Link href="#" className="text-primary hover:underline">terminos de servicio</Link>
-                    {' '}y la{' '}
-                    <Link href="#" className="text-primary hover:underline">politica de privacidad</Link>
-                  </label>
-                </div>
-
                 {error && (
                   <p className="text-sm text-destructive">{error}</p>
                 )}
@@ -176,25 +155,6 @@ export default function RegisterPage() {
                   )}
                 </Button>
               </form>
-
-              {/* Benefits */}
-              <div className="mt-6 p-4 rounded-lg bg-primary/5 border border-primary/20">
-                <p className="text-sm font-medium text-foreground mb-3">Lo que obtenes gratis:</p>
-                <ul className="space-y-2">
-                  <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                    Eventos ilimitados
-                  </li>
-                  <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                    Participantes ilimitados
-                  </li>
-                  <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                    Calculo automatico de deudas
-                  </li>
-                </ul>
-              </div>
 
               <p className="mt-6 text-center text-sm text-muted-foreground">
                 Ya tienes cuenta?{' '}
