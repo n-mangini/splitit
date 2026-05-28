@@ -46,7 +46,7 @@ export default function RegisterPage() {
     await new Promise(resolve => setTimeout(resolve, 1000))
     
     // Mock success - redirect to dashboard
-    router.push('/dashboard')
+    router.push('/dashboard/groups')
   }
 
   const passwordStrength = password.length >= 8 ? 'strong' : password.length >= 6 ? 'medium' : 'weak'

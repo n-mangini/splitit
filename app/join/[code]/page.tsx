@@ -5,9 +5,9 @@ export default async function JoinEventPage({
   searchParams,
 }: {
   params: Promise<{ code: string }>
-  searchParams: Promise<{ access?: string }>
+  searchParams: Promise<{ step?: string }>
 }) {
-  const [{ code }, { access }] = await Promise.all([params, searchParams])
+  const [{ code }, { step }] = await Promise.all([params, searchParams])
 
-  return <JoinEventClient code={code} accessParam={access} />
+  return <JoinEventClient code={code} step={step} />
 }

@@ -17,7 +17,7 @@ const mobileNavItems = [
 
 function Logo() {
   return (
-    <Link href="/dashboard" className="flex items-center gap-2">
+    <Link href="/dashboard/groups" className="flex items-center gap-2">
       <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-lg font-black text-primary-foreground">
         S
       </div>

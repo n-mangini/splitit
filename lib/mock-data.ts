@@ -3,18 +3,17 @@ import { Event, User, Expense, Participant, Balance, Settlement } from './types'
 // Mock current user
 export const mockCurrentUser: User = {
   id: 'user-1',
-  name: 'Juan Perez',
-  email: 'juan@email.com',
+  name: 'Nicolas',
+  email: 'nicolas@email.com',
   avatar: undefined
 }
 
 // Mock participants
 const mockParticipants: Participant[] = [
-  { id: 'p-1', name: 'Juan Perez', email: 'juan@email.com', isGuest: false },
-  { id: 'p-2', name: 'Maria Garcia', email: 'maria@email.com', isGuest: false },
-  { id: 'p-3', name: 'Carlos Lopez', email: 'carlos@email.com', isGuest: false },
-  { id: 'p-4', name: 'Ana Martinez', isGuest: true },
-  { id: 'p-5', name: 'Pedro Sanchez', isGuest: true },
+  { id: 'p-1', name: 'Nicolas', email: 'nicolas@email.com', isGuest: false },
+  { id: 'p-2', name: 'Marcos', email: 'marcos@email.com', isGuest: false },
+  { id: 'p-3', name: 'Lucas', email: 'lucas@email.com', isGuest: false },
+  { id: 'p-4', name: 'Francisco', isGuest: true },
 ]
 
 // Mock expenses for trip
@@ -124,7 +123,6 @@ export const mockEvents: Event[] = [
     expenses: tripExpenses,
     createdAt: '2024-01-10T08:00:00Z',
     inviteCode: 'BARI2024',
-    inviteAccess: 'public',
     currency: 'ARS',
     icon: 'plane'
   },
@@ -137,8 +135,6 @@ export const mockEvents: Event[] = [
     expenses: aptExpenses,
     createdAt: '2024-01-01T10:00:00Z',
     inviteCode: 'DEPTO01',
-    inviteAccess: 'private',
-    privateInvitees: ['maria@email.com', 'carlos@email.com'],
     currency: 'ARS',
     icon: 'home'
   },
@@ -151,7 +147,6 @@ export const mockEvents: Event[] = [
     expenses: [],
     createdAt: '2024-02-01T10:00:00Z',
     inviteCode: 'ANA2024',
-    inviteAccess: 'public',
     currency: 'ARS',
     icon: 'party'
   },
@@ -268,11 +263,9 @@ export const categoryInfo: Record<string, { label: string; color: string }> = {
 }
 
 // Generate invite link
-export function getInviteLink(inviteCode: string, inviteAccess?: 'public' | 'private'): string {
+export function getInviteLink(inviteCode: string): string {
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  const accessParam = inviteAccess ? `?access=${inviteAccess}` : ''
-
-  return `${origin}/join/${inviteCode}${accessParam}`
+  return `${origin}/join/${inviteCode}`
 }
 
 // Get initials from name

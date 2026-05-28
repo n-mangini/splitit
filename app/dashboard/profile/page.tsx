@@ -11,7 +11,6 @@ import {
   User,
   Globe,
   LogOut,
-  Trash2,
   Check
 } from 'lucide-react'
 import { mockCurrentUser } from '@/lib/mock-data'
@@ -124,7 +123,7 @@ export default function ProfilePage() {
       <Card className="bg-card border-destructive/50 mb-6">
         <CardHeader>
           <CardTitle className="text-lg text-destructive flex items-center gap-2">
-            <Trash2 className="h-5 w-5" />
+            <LogOut className="h-5 w-5" />
             Zona de peligro
           </CardTitle>
           <CardDescription>
@@ -143,14 +142,6 @@ export default function ProfilePage() {
                 Cerrar sesion
               </Button>
             </Link>
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Eliminar cuenta</p>
-              <p className="text-sm text-muted-foreground">Borrar permanentemente todos tus datos</p>
-            </div>
-            <Button variant="destructive">Eliminar cuenta</Button>
           </div>
         </CardContent>
       </Card>

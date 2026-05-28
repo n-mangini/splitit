@@ -16,7 +16,7 @@ function Logo() {
 }
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { calculateBalances, formatCurrency, mockEvents } from '@/lib/mock-data'
+import { mockEvents } from '@/lib/mock-data'
 import { getEventIcon } from '@/lib/event-icons'
 
 function IconCircle({
@@ -41,11 +41,6 @@ function IconCircle({
 }
 
 function GroupCard({ event }: { event: (typeof mockEvents)[number] }) {
-  const balances = calculateBalances(event)
-  const userBalance = balances.find((balance) => balance.participantId === 'p-1')?.netBalance ?? 0
-  const isPositive = userBalance > 0
-  const isNegative = userBalance < 0
-  const balanceLabel = isPositive ? 'te deben' : isNegative ? 'debes' : 'esta todo claro'
   const { Icon } = getEventIcon(event.icon)
 
   return (
@@ -62,19 +57,6 @@ function GroupCard({ event }: { event: (typeof mockEvents)[number] }) {
           </p>
         </div>
 
-        <div className="text-right">
-          <p
-            className={cn(
-              'text-base font-black',
-              isPositive && 'text-primary',
-              isNegative && 'text-secondary',
-              !userBalance && 'text-foreground'
-            )}
-          >
-            {userBalance !== 0 ? formatCurrency(Math.abs(userBalance)) : '$0'}
-          </p>
-          <p className="text-xs font-semibold text-muted-foreground">{balanceLabel}</p>
-        </div>
 
         <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
       </div>
