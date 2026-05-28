@@ -2,9 +2,8 @@
 
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { ArrowDownLeft, ArrowUpRight, CheckCircle2, UsersRound, WalletCards } from 'lucide-react'
+import { UsersRound, WalletCards } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { calculateBalances, formatCurrency, mockEvents } from '@/lib/mock-data'
 
 function Logo() {
   return (
@@ -70,53 +69,7 @@ function ActionCard({
   )
 }
 
-function BalanceBucketCard({
-  title,
-  count,
-  amount,
-  tone,
-  icon,
-}: {
-  title: string
-  count: number
-  amount: number
-  tone: 'green' | 'purple' | 'blue'
-  icon: ReactNode
-}) {
-  return (
-    <article className="splitit-card p-4">
-      <div className="flex items-center gap-3">
-        <IconCircle tone={tone}>{icon}</IconCircle>
-        <div>
-          <p className="text-2xl font-black text-foreground">{count}</p>
-          <p className="text-sm font-bold text-muted-foreground">{title}</p>
-        </div>
-      </div>
-      <p
-        className={cn(
-          'mt-4 text-lg font-black',
-          tone === 'green' && 'text-primary',
-          tone === 'purple' && 'text-secondary',
-          tone === 'blue' && 'text-foreground'
-        )}
-      >
-        {formatCurrency(Math.abs(amount))}
-      </p>
-    </article>
-  )
-}
-
 export default function DashboardPage() {
-  const eventBalances = mockEvents.map((event) => {
-    const netBalance = calculateBalances(event).find((balance) => balance.participantId === 'p-1')?.netBalance ?? 0
-    return { event, netBalance }
-  })
-  const favorableSplits = eventBalances.filter((item) => item.netBalance > 0)
-  const pendingSplits = eventBalances.filter((item) => item.netBalance < 0)
-  const settledSplits = eventBalances.filter((item) => item.netBalance === 0)
-  const favorableAmount = favorableSplits.reduce((acc, item) => acc + item.netBalance, 0)
-  const pendingAmount = pendingSplits.reduce((acc, item) => acc + Math.abs(item.netBalance), 0)
-
   return (
     <div className="space-y-7 lg:space-y-10">
       <header className="flex items-center justify-between lg:hidden">
@@ -148,41 +101,6 @@ export default function DashboardPage() {
         />
       </section>
 
-      <section className="space-y-3">
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-sm font-black text-primary">Estado de splits</p>
-            <h2 className="mt-1 text-2xl font-black text-foreground">Pendientes</h2>
-          </div>
-          <Link href="/dashboard/groups" className="text-sm font-black text-primary">
-            Ver detalle
-          </Link>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <BalanceBucketCard
-            title="a favor"
-            count={favorableSplits.length}
-            amount={favorableAmount}
-            tone="green"
-            icon={<ArrowDownLeft className="h-6 w-6" />}
-          />
-          <BalanceBucketCard
-            title="por pagar"
-            count={pendingSplits.length}
-            amount={pendingAmount}
-            tone="purple"
-            icon={<ArrowUpRight className="h-6 w-6" />}
-          />
-          <BalanceBucketCard
-            title="en cero"
-            count={settledSplits.length}
-            amount={0}
-            tone="blue"
-            icon={<CheckCircle2 className="h-6 w-6" />}
-          />
-        </div>
-      </section>
     </div>
   )
 }

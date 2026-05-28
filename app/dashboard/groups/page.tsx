@@ -3,6 +3,17 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { ChevronRight, Plus, Search } from 'lucide-react'
+
+function Logo() {
+  return (
+    <Link href="/dashboard/groups" className="flex items-center gap-2">
+      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-lg font-black text-primary-foreground">
+        S
+      </div>
+      <span className="text-2xl font-black tracking-normal text-foreground">SplitIt</span>
+    </Link>
+  )
+}
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { calculateBalances, formatCurrency, mockEvents } from '@/lib/mock-data'
@@ -74,6 +85,10 @@ function GroupCard({ event }: { event: (typeof mockEvents)[number] }) {
 export default function GroupsPage() {
   return (
     <div className="space-y-6 lg:space-y-8">
+      <header className="flex items-center justify-between lg:hidden">
+        <Logo />
+      </header>
+
       <header className="space-y-4 lg:flex lg:items-end lg:justify-between lg:space-y-0">
         <div>
           <p className="text-sm font-black text-primary">Eventos</p>

@@ -3,11 +3,10 @@
 import { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, ReceiptText, UserRound } from 'lucide-react'
+import { ReceiptText, UserRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { href: '/dashboard', label: 'Inicio', icon: Home },
   { href: '/dashboard/groups', label: 'Eventos', icon: ReceiptText },
 ]
 
@@ -37,7 +36,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         <nav className="mt-10 space-y-2">
           {navItems.map((item, index) => {
-            const isActive = index === 0 ? pathname === item.href : index === 1 && (pathname.startsWith('/dashboard/groups') || pathname.startsWith('/dashboard/event'))
+            const isActive = pathname.startsWith('/dashboard/groups') || pathname.startsWith('/dashboard/event')
             const Icon = item.icon
 
             return (
@@ -78,14 +77,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 mx-auto h-[88px] max-w-md rounded-t-[28px] border border-b-0 border-border bg-card shadow-[0_-4px_20px_rgba(0,0,0,0.05)] lg:hidden">
-        <div className="grid h-full grid-cols-3 px-8">
+        <div className="grid h-full grid-cols-2 px-8">
           {mobileNavItems.map((item, index) => {
             const isActive =
               index === 0
-                ? pathname === item.href
-                : index === 1
-                  ? pathname.startsWith('/dashboard/groups') || pathname.startsWith('/dashboard/event')
-                  : pathname.startsWith('/dashboard/profile')
+                ? pathname.startsWith('/dashboard/groups') || pathname.startsWith('/dashboard/event')
+                : pathname.startsWith('/dashboard/profile')
             const Icon = item.icon
 
             return (

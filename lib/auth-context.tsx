@@ -8,7 +8,6 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>
   register: (name: string, email: string, password: string) => Promise<boolean>
   logout: () => void
-  forgotPassword: (email: string) => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -49,13 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
-  const forgotPassword = useCallback(async (email: string): Promise<boolean> => {
-    setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsLoading(false)
-    return !!email
-  }, [])
-
   return (
     <AuthContext.Provider value={{
       user,
@@ -64,7 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       register,
       logout,
-      forgotPassword
     }}>
       {children}
     </AuthContext.Provider>

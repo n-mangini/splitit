@@ -9,7 +9,6 @@ import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import {
   User,
-  Lock,
   Globe,
   LogOut,
   Trash2,
@@ -43,30 +42,22 @@ export default function ProfilePage() {
       {/* Profile Card */}
       <Card className="bg-card border-border mb-6">
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
-            Informacion personal
-          </CardTitle>
-          <CardDescription>
-            Actualiza tus datos de perfil
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Avatar */}
           <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
-              <span className="text-xl font-bold text-primary">
+            <div className="h-14 w-14 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+              <span className="text-lg font-bold text-primary">
                 {name.split(' ').map(n => n[0]).join('').slice(0, 2)}
               </span>
             </div>
             <div>
-              <Button variant="outline" size="sm">Cambiar foto</Button>
-              <p className="text-xs text-muted-foreground mt-1">JPG, PNG. Max 2MB</p>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                Informacion personal
+              </CardTitle>
+              <CardDescription>Actualiza tus datos de perfil</CardDescription>
             </div>
           </div>
-
-          <Separator />
-
+        </CardHeader>
+        <CardContent className="space-y-4">
           {/* Form */}
           <div className="space-y-4">
             <div className="space-y-2">
@@ -107,35 +98,6 @@ export default function ProfilePage() {
       </Card>
 
       {/* Security Card */}
-      <Card className="bg-card border-border mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Lock className="h-5 w-5 text-primary" />
-            Seguridad
-          </CardTitle>
-          <CardDescription>
-            Gestiona tu contrasena y seguridad
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Cambiar contrasena</p>
-              <p className="text-sm text-muted-foreground">Actualiza tu contrasena regularmente</p>
-            </div>
-            <Button variant="outline">Cambiar</Button>
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Sesiones activas</p>
-              <p className="text-sm text-muted-foreground">Gestiona tus dispositivos conectados</p>
-            </div>
-            <Button variant="outline">Ver sesiones</Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Preferences Card */}
       <Card className="bg-card border-border mb-6">
         <CardHeader>
