@@ -1,23 +1,23 @@
 'use client'
 
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ReceiptText, UserRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { href: '/dashboard/groups', label: 'Eventos', icon: ReceiptText },
+  { href: '/events', label: 'Eventos', icon: ReceiptText },
 ]
 
 const mobileNavItems = [
   ...navItems,
-  { href: '/dashboard/profile', label: 'Perfil', icon: UserRound },
+  { href: '/profile', label: 'Perfil', icon: UserRound },
 ]
 
 function Logo() {
   return (
-    <Link href="/dashboard/groups" className="flex items-center gap-2">
+    <Link href="/events" className="flex items-center gap-2">
       <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-lg font-black text-primary-foreground">
         S
       </div>
@@ -26,17 +26,17 @@ function Logo() {
   )
 }
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  const isEventsActive = pathname.startsWith('/events')
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-background">
-      <aside className="fixed left-6 top-6 bottom-6 z-40 hidden w-64 flex-col rounded-[32px] border border-border bg-card p-5 shadow-[0_10px_40px_rgba(15,23,42,0.06)] lg:flex">
+      <aside className="fixed bottom-6 left-6 top-6 z-40 hidden w-64 flex-col rounded-[32px] border border-border bg-card p-5 shadow-[0_10px_40px_rgba(15,23,42,0.06)] lg:flex">
         <Logo />
 
         <nav className="mt-10 space-y-2">
           {navItems.map((item, index) => {
-            const isActive = pathname.startsWith('/dashboard/groups') || pathname.startsWith('/dashboard/event')
             const Icon = item.icon
 
             return (
@@ -45,7 +45,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 href={item.href}
                 className={cn(
                   'flex items-center gap-3 rounded-[18px] px-4 py-3 text-sm font-black transition-colors',
-                  isActive ? 'bg-[#E8FAF5] text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  isEventsActive ? 'bg-[#E8FAF5] text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -56,10 +56,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </nav>
 
         <Link
-          href="/dashboard/profile"
+          href="/profile"
           className={cn(
             'mt-auto flex items-center gap-3 rounded-[24px] bg-background p-4 transition-colors hover:bg-muted',
-            pathname.startsWith('/dashboard/profile') && 'bg-[#E8FAF5]'
+            pathname.startsWith('/profile') && 'bg-[#E8FAF5]'
           )}
         >
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E8FAF5] text-primary">
@@ -79,10 +79,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <nav className="fixed bottom-0 left-0 right-0 z-50 mx-auto h-[88px] max-w-md rounded-t-[28px] border border-b-0 border-border bg-card shadow-[0_-4px_20px_rgba(0,0,0,0.05)] lg:hidden">
         <div className="grid h-full grid-cols-2 px-8">
           {mobileNavItems.map((item, index) => {
-            const isActive =
-              index === 0
-                ? pathname.startsWith('/dashboard/groups') || pathname.startsWith('/dashboard/event')
-                : pathname.startsWith('/dashboard/profile')
+            const isActive = index === 0 ? isEventsActive : pathname.startsWith('/profile')
             const Icon = item.icon
 
             return (

@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select'
 import { UserRoundCheck, Users } from 'lucide-react'
 import { mockEvents } from '@/lib/mock-data'
+import { getEventIcon } from '@/lib/event-icons'
 
 type StoredClaim = {
   eventId: string
@@ -115,7 +116,7 @@ export function JoinEventClient({
     setStoredClaims(claims)
     setCurrentClaim(claim)
     await new Promise((resolve) => setTimeout(resolve, 1000))
-    router.push(`/dashboard/event/${event.id}`)
+    router.push(`/events/${event.id}`)
   }
 
   if (!event) {
@@ -139,6 +140,8 @@ export function JoinEventClient({
     )
   }
 
+  const { Icon: EventIconComponent } = getEventIcon(event.icon)
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="border-b border-border p-4">
@@ -154,8 +157,8 @@ export function JoinEventClient({
         <div className="w-full max-w-md">
           <Card className="border-border bg-card">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-primary/10">
-                <span className="text-2xl font-bold text-primary">{event.name.charAt(0)}</span>
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[22px] bg-[#EAF4FF] text-[#2D9CDB]">
+                <EventIconComponent className="h-8 w-8" />
               </div>
               <CardTitle className="text-2xl text-foreground">{event.name}</CardTitle>
               <CardDescription>
@@ -163,15 +166,10 @@ export function JoinEventClient({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="mb-6 flex items-center justify-center gap-6 border-y border-border py-4">
+              <div className="mb-6 flex items-center justify-center border-y border-border py-4">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-foreground">{event.participants.length}</p>
                   <p className="text-xs text-muted-foreground">Participantes</p>
-                </div>
-                <div className="h-8 w-px bg-border" />
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-foreground">{event.expenses.length}</p>
-                  <p className="text-xs text-muted-foreground">Gastos</p>
                 </div>
               </div>
 
@@ -212,7 +210,7 @@ export function JoinEventClient({
                   <div className="space-y-3">
                     <Button
                       className="w-full gap-2"
-                      onClick={() => router.push(`/dashboard/event/${event.id}`)}
+                      onClick={() => router.push(`/events/${event.id}`)}
                     >
                       <Users className="h-4 w-4" />
                       Continuar sin cuenta

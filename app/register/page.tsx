@@ -45,8 +45,8 @@ export default function RegisterPage() {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000))
     
-    // Mock success - redirect to dashboard
-    router.push('/dashboard/groups')
+    // Mock success - redirect to events
+    router.push('/events')
   }
 
   const passwordStrength = password.length >= 8 ? 'strong' : password.length >= 6 ? 'medium' : 'weak'

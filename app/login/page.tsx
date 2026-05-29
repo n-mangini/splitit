@@ -35,7 +35,7 @@ export default function LoginPage() {
     await new Promise(resolve => setTimeout(resolve, 1000))
     
     const redirect = searchParams.get('redirect')
-    router.push(redirect ?? '/dashboard/groups')
+    router.push(redirect ?? '/events')
   }
 
   return (

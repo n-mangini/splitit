@@ -1,23 +1,19 @@
 'use client'
 
 import type { FormEvent, ReactNode } from 'react'
-import { use, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft,
   ArrowRight,
-  CarFront,
   Check,
   ChevronRight,
   Pencil,
   Plus,
   WandSparkles,
   ReceiptText,
-  Search,
   Share2,
-  ShoppingCart,
   UsersRound,
-  WalletCards,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -40,13 +36,27 @@ import {
   formatDate,
   getInitials,
   getInviteLink,
+  mockCurrentUser,
   mockEvents,
 } from '@/lib/mock-data'
 import { getExchangeRates } from '@/lib/exchange'
 import { EventIcon, eventIcons, getEventIcon } from '@/lib/event-icons'
-import { Event, Expense, ExpenseCategory } from '@/lib/types'
+import { Event, Expense } from '@/lib/types'
 
 const supportedCurrencies = ['ARS', 'USD', 'EUR', 'BRL', 'UYU', 'CLP'] as const
+
+const currencyLabels: Record<string, string> = {
+  ARS: 'ARS - Peso Argentino',
+  USD: 'USD - Dolar',
+  EUR: 'EUR - Euro',
+  BRL: 'BRL - Real',
+  UYU: 'UYU - Peso Uruguayo',
+  CLP: 'CLP - Peso Chileno',
+}
+
+function getCurrencyLabel(currency: string) {
+  return currencyLabels[currency] ?? currency
+}
 
 type TabValue = 'expenses' | 'balances' | 'members'
 
@@ -54,16 +64,6 @@ const tabs: { value: TabValue; label: string }[] = [
   { value: 'expenses', label: 'Gastos' },
   { value: 'balances', label: 'Saldos' },
   { value: 'members', label: 'Integrantes' },
-]
-
-const expenseCategories: { value: ExpenseCategory; label: string }[] = [
-  { value: 'food', label: 'Comida' },
-  { value: 'transport', label: 'Transporte' },
-  { value: 'accommodation', label: 'Alojamiento' },
-  { value: 'entertainment', label: 'Actividades' },
-  { value: 'shopping', label: 'Compras' },
-  { value: 'utilities', label: 'Servicios' },
-  { value: 'other', label: 'Otros' },
 ]
 
 function IconCircle({
@@ -118,68 +118,26 @@ function TopTabs({ active, onChange }: { active: TabValue; onChange: (value: Tab
   )
 }
 
-function CategoryBadge({ category }: { category?: Expense['category'] }) {
-  const labelByCategory = {
-    food: 'Alimentacion',
-    transport: 'Transporte',
-    accommodation: 'Alojamiento',
-    entertainment: 'Actividades',
-    shopping: 'Compras',
-    utilities: 'Servicios',
-    other: 'Otros',
-  }
-
-  const tone = category === 'entertainment' || category === 'shopping' ? 'green' : 'purple'
-
-  return (
-    <span
-      className={cn(
-        'rounded-full px-2.5 py-1 text-[11px] font-black',
-        tone === 'green' ? 'bg-[#E8FAF5] text-primary' : 'bg-[#F0E9FF] text-secondary'
-      )}
-    >
-      {labelByCategory[category ?? 'other']}
-    </span>
-  )
-}
-
-function expenseIcon(expense: Expense) {
-  if (expense.category === 'food') return <ShoppingCart className="h-5 w-5" />
-  if (expense.category === 'transport') return <CarFront className="h-5 w-5" />
-  return <ReceiptText className="h-5 w-5" />
-}
-
 function ExpenseCard({
   expense,
   paidBy,
   currency,
-  onSelect,
 }: {
   expense: Expense
   paidBy?: string
   currency: string
-  onSelect: () => void
 }) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className="splitit-card w-full p-4 text-left transition-transform active:scale-[0.99]"
-    >
+    <article className="splitit-card w-full p-4">
       <div className="flex items-center gap-3">
-        <IconCircle tone={expense.category === 'transport' ? 'purple' : 'green'} size="sm">
-          {expenseIcon(expense)}
+        <IconCircle tone="green" size="sm">
+          <ReceiptText className="h-5 w-5" />
         </IconCircle>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-black text-foreground">{expense.name}</h3>
-            <CategoryBadge category={expense.category} />
-          </div>
+          <h3 className="truncate text-sm font-black text-foreground">{expense.name}</h3>
           <p className="mt-1 text-xs text-muted-foreground">{formatDate(expense.date)}</p>
-          <p className="mt-2 text-xs font-semibold text-muted-foreground">
-            Pago {paidBy ?? 'Sin asignar'} · Dividido entre {expense.splitBetween.length}
-          </p>
+          <p className="mt-2 text-xs font-semibold text-muted-foreground">Pago {paidBy ?? 'Sin asignar'}</p>
         </div>
 
         <div className="text-right">
@@ -189,37 +147,19 @@ function ExpenseCard({
               {formatCurrency(expense.originalAmount, expense.originalCurrency)} {expense.originalCurrency}
             </p>
           )}
-          <ChevronRight className="ml-auto mt-2 h-5 w-5 text-muted-foreground" />
         </div>
       </div>
-    </button>
+    </article>
   )
 }
 
-function BalanceSummaryCard({ suggestedPayments, totalToPay }: { suggestedPayments: number; totalToPay: number }) {
+function EmptyExpensesCard() {
   return (
-    <section className="splitit-card bg-[#E8FAF5] p-5">
-      <div className="flex items-start gap-4">
-        <IconCircle tone="green">
-          <WalletCards className="h-6 w-6" />
-        </IconCircle>
-        <div className="min-w-0 flex-1">
-          <h3 className="text-base font-black text-foreground">Quien le debe a quien</h3>
-          <p className="mt-1 text-sm leading-5 text-muted-foreground">
-            Con las cuentas sugeridas, todos quedan en $0.
-          </p>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-muted-foreground">Cuentas sugeridas</p>
-              <p className="truncate text-xl font-black text-foreground">{suggestedPayments}</p>
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-muted-foreground">Monto a pagar</p>
-              <p className="truncate text-xl font-black text-primary">{formatCurrency(totalToPay)}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <section className="splitit-card p-5 text-center sm:p-6">
+      <h3 className="text-xl font-black text-foreground">Todavia no hay gastos</h3>
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
+        Cuando cargues gastos, van a aparecer aca para revisar quien pago y cuanto corresponde.
+      </p>
     </section>
   )
 }
@@ -228,10 +168,12 @@ function SuggestedPaymentCard({
   from,
   to,
   amount,
+  currency,
 }: {
   from: string
   to: string
   amount: number
+  currency: string
 }) {
   return (
     <article className="splitit-card p-4">
@@ -252,7 +194,7 @@ function SuggestedPaymentCard({
           <p className="hidden text-xs font-semibold text-muted-foreground sm:block">debe recibir</p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-sm font-black text-primary">{formatCurrency(amount)}</p>
+          <p className="text-sm font-black text-primary">{formatCurrency(amount, currency)}</p>
           <ChevronRight className="ml-auto mt-2 hidden h-5 w-5 text-muted-foreground sm:block" />
         </div>
       </div>
@@ -260,7 +202,7 @@ function SuggestedPaymentCard({
   )
 }
 
-function MemberBalanceRow({ name, amount }: { name: string; amount: number }) {
+function MemberBalanceRow({ name, amount, currency }: { name: string; amount: number; currency: string }) {
   const status = amount > 0 ? 'recibe' : amount < 0 ? 'debe' : 'en cero'
 
   return (
@@ -290,32 +232,32 @@ function MemberBalanceRow({ name, amount }: { name: string; amount: number }) {
         )}
       >
         {amount > 0 ? '+' : ''}
-        {formatCurrency(amount)}
+        {formatCurrency(amount, currency)}
       </p>
     </article>
   )
 }
 
-export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params)
-  const event = mockEvents.find((item) => item.id === resolvedParams.id) ?? mockEvents[0]
-  const [expenses, setExpenses] = useState<Expense[]>(event.expenses)
+export function EventDetailScreen({ eventId, empty = false }: { eventId: string; empty?: boolean }) {
+  const event = mockEvents.find((item) => item.id === eventId) ?? mockEvents[0]
+  const [expenses, setExpenses] = useState<Expense[]>(empty ? [] : event.expenses)
+  const [participants, setParticipants] = useState<Event['participants']>(event.participants)
   const [activeTab, setActiveTab] = useState<TabValue>('expenses')
   const [copied, setCopied] = useState(false)
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false)
-  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null)
   const [iconValue, setIconValue] = useState<EventIcon>(event.icon ?? 'plane')
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false)
   const { Icon: EventIconComponent } = getEventIcon(iconValue)
+  const [eventName, setEventName] = useState(event.name)
+  const [isNameOpen, setIsNameOpen] = useState(false)
+  const [nameDraft, setNameDraft] = useState(eventName)
   const [eventDescription, setEventDescription] = useState(event.description ?? '')
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(false)
   const [descriptionDraft, setDescriptionDraft] = useState(eventDescription)
   const [expenseName, setExpenseName] = useState('')
   const [expenseAmount, setExpenseAmount] = useState('')
   const [expenseCurrency, setExpenseCurrency] = useState(event.currency)
-  const [expensePaidBy, setExpensePaidBy] = useState(event.participants[0]?.id ?? '')
-  const [expenseCategory, setExpenseCategory] = useState<ExpenseCategory>('food')
-  const [splitBetween, setSplitBetween] = useState<string[]>(event.participants.map((participant) => participant.id))
+  const [expensePaidBy, setExpensePaidBy] = useState(participants[0]?.id ?? '')
   const [expenseError, setExpenseError] = useState('')
   const [rates, setRates] = useState<Record<string, number> | null>(null)
   const [ratesLoading, setRatesLoading] = useState(false)
@@ -354,8 +296,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const balances = calculateBalances(eventSnapshot)
   const settlements = calculateSettlements(balances)
   const totalExpenses = expenses.reduce((acc, expense) => acc + expense.amount, 0)
-  const averageExpense = totalExpenses / event.participants.length
-  const totalToPay = settlements.reduce((acc, settlement) => acc + settlement.amount, 0)
   const inviteLink = getInviteLink(event.inviteCode)
 
   const handleCopyLink = async () => {
@@ -364,21 +304,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     setTimeout(() => setCopied(false), 1600)
   }
 
-  const toggleSplitParticipant = (participantId: string) => {
-    setSplitBetween((current) =>
-      current.includes(participantId)
-        ? current.filter((id) => id !== participantId)
-        : [...current, participantId]
-    )
-  }
-
   const resetExpenseForm = () => {
     setExpenseName('')
     setExpenseAmount('')
     setExpenseCurrency(event.currency)
-    setExpensePaidBy(event.participants[0]?.id ?? '')
-    setExpenseCategory('food')
-    setSplitBetween(event.participants.map((participant) => participant.id))
+    setExpensePaidBy(participants[0]?.id ?? '')
     setExpenseError('')
   }
 
@@ -400,11 +330,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
     if (!expensePaidBy) {
       setExpenseError('Selecciona quien pago')
-      return
-    }
-
-    if (splitBetween.length === 0) {
-      setExpenseError('Selecciona al menos una persona para dividir')
       return
     }
 
@@ -435,9 +360,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         name: expenseName.trim(),
         amount: storedAmount,
         paidBy: expensePaidBy,
-        splitBetween,
+        splitBetween: participants.map((participant) => participant.id),
         date: new Date().toISOString().slice(0, 10),
-        category: expenseCategory,
         createdAt: new Date().toISOString(),
         originalAmount,
         originalCurrency,
@@ -453,7 +377,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     <div className="space-y-6 lg:space-y-8">
       <header className="space-y-5 lg:rounded-[32px] lg:border lg:border-border lg:bg-card lg:p-6 lg:shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
         <div className="flex items-center justify-between">
-          <Link href="/dashboard/groups" className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
+          <Link href="/events" className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
             <ArrowLeft className="h-5 w-5" />
           </Link>
 
@@ -503,22 +427,38 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               </span>
             </button>
             <div>
-              <h1 className="text-2xl font-black text-foreground lg:text-4xl">{event.name}</h1>
-              <p className="mt-1 max-w-xl text-sm font-semibold text-muted-foreground lg:text-base">
-                {event.participants.length} integrantes · {expenses.length} gastos
-                {eventDescription && ` · ${eventDescription}`}
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-black text-foreground lg:text-4xl">{eventName}</h1>
                 <button
                   type="button"
-                  onClick={() => {
-                    setDescriptionDraft(eventDescription)
-                    setIsDescriptionOpen(true)
-                  }}
-                  className="ml-2 inline-flex items-center gap-1 align-middle text-xs font-black text-primary hover:underline"
+                  onClick={() => { setNameDraft(eventName); setIsNameOpen(true) }}
+                  className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Editar nombre del evento"
                 >
-                  <Pencil className="h-3 w-3" />
-                  {eventDescription ? 'Editar descripcion' : 'Agregar descripcion'}
+                  <Pencil className="h-4 w-4" />
                 </button>
-              </p>
+              </div>
+              {(eventDescription || true) && (
+                <p className="mt-1 max-w-xl text-sm font-semibold text-muted-foreground lg:text-base">
+                  {eventDescription && <span>{eventDescription} · </span>}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDescriptionDraft(eventDescription)
+                      setIsDescriptionOpen(true)
+                    }}
+                    className="inline-flex items-center gap-1 align-middle text-xs font-black text-primary hover:underline"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    {eventDescription ? 'Editar descripcion' : 'Agregar descripcion'}
+                  </button>
+                </p>
+              )}
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-[#EAF4FF] px-3 py-1 text-xs font-black text-[#2D9CDB]">
+                  Moneda {getCurrencyLabel(event.currency)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -527,33 +467,19 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       </header>
 
       {activeTab === 'expenses' && (
-        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
-          <aside className="splitit-card grid grid-cols-2 gap-3 p-4 lg:sticky lg:top-28 lg:col-start-2 lg:row-start-1 lg:block lg:space-y-4 lg:p-5">
-            <div className="lg:rounded-[20px] lg:bg-background lg:p-4">
-              <p className="text-xs font-bold text-muted-foreground">Total de gastos</p>
-              <p className="mt-1 text-xl font-black text-foreground">{formatCurrency(totalExpenses)}</p>
-            </div>
-            <div className="lg:rounded-[20px] lg:bg-background lg:p-4">
-              <p className="text-xs font-bold text-muted-foreground">Gasto promedio</p>
-              <p className="mt-1 text-xl font-black text-foreground">{formatCurrency(averageExpense)}</p>
-            </div>
-          </aside>
-
-          <div className="space-y-4 lg:col-start-1 lg:row-start-1">
+        <section className="space-y-4">
             <div>
               <h2 className="text-2xl font-black text-foreground lg:text-3xl">Gastos</h2>
-              <p className="text-sm text-muted-foreground">{expenses.length} movimientos</p>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
-              <div className="flex h-14 items-center gap-3 rounded-[20px] border border-border bg-card px-4">
-                <Search className="h-5 w-5 text-muted-foreground" />
-                <input
-                  className="h-full flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-muted-foreground"
-                  placeholder="Buscar gasto"
-                />
-              </div>
+            <article className="splitit-card p-4">
+              <p className="text-xs font-bold text-muted-foreground">Total de gastos</p>
+              <p className="mt-1 text-2xl font-black text-foreground">
+                {formatCurrency(totalExpenses, event.currency)}
+              </p>
+            </article>
 
+            <div className="grid gap-3 md:grid-cols-[220px]">
               <Dialog open={isAddExpenseOpen} onOpenChange={setIsAddExpenseOpen}>
                 <DialogTrigger asChild>
                   <Button className="h-14 w-full rounded-[18px] bg-primary text-base font-black text-primary-foreground hover:bg-primary/90">
@@ -564,9 +490,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 <DialogContent className="max-h-[90vh] overflow-y-auto rounded-[24px]">
                   <DialogHeader>
                     <DialogTitle>Agregar gasto</DialogTitle>
-                    <DialogDescription>
-                      Carga quien pago, el monto y entre quienes se divide.
-                    </DialogDescription>
+                    <DialogDescription>Carga quien pago y el monto.</DialogDescription>
                   </DialogHeader>
 
                   <form onSubmit={handleAddExpense} className="space-y-4">
@@ -634,62 +558,19 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                     )}
 
                     <div className="space-y-2">
-                      <Label>Categoria</Label>
-                      <Select value={expenseCategory} onValueChange={(value) => setExpenseCategory(value as ExpenseCategory)}>
-                        <SelectTrigger className="h-10 rounded-[18px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {expenseCategories.map((category) => (
-                            <SelectItem key={category.value} value={category.value}>
-                              {category.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
                       <Label>Pago</Label>
                       <Select value={expensePaidBy} onValueChange={setExpensePaidBy}>
                         <SelectTrigger className="h-11 rounded-[18px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {event.participants.map((participant) => (
+                          {participants.map((participant) => (
                             <SelectItem key={participant.id} value={participant.id}>
                               {participant.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>Dividir entre</Label>
-                        <span className="text-xs font-semibold text-muted-foreground">{splitBetween.length} seleccionados</span>
-                      </div>
-                      <div className="grid gap-2">
-                        {event.participants.map((participant) => {
-                          const checked = splitBetween.includes(participant.id)
-
-                          return (
-                            <label
-                              key={participant.id}
-                              className="flex cursor-pointer items-center gap-3 rounded-[18px] border border-border bg-background px-3 py-2"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => toggleSplitParticipant(participant.id)}
-                                className="h-4 w-4 accent-primary"
-                              />
-                              <span className="text-sm font-bold text-foreground">{participant.name}</span>
-                            </label>
-                          )
-                        })}
-                      </div>
                     </div>
 
                     {expenseError && (
@@ -717,22 +598,24 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               </Dialog>
             </div>
 
-            <div className="grid gap-3 xl:grid-cols-2">
-              {expenses.map((expense) => {
-                const payer = event.participants.find((participant) => participant.id === expense.paidBy)
+            {expenses.length > 0 ? (
+              <div className="grid gap-3 xl:grid-cols-2">
+                {expenses.map((expense) => {
+                  const payer = participants.find((participant) => participant.id === expense.paidBy)
 
-                return (
-                  <ExpenseCard
-                    key={expense.id}
-                    expense={expense}
-                    paidBy={payer?.name}
-                    currency={event.currency}
-                    onSelect={() => setSelectedExpenseId(expense.id)}
-                  />
-                )
-              })}
-            </div>
-          </div>
+                  return (
+                    <ExpenseCard
+                      key={expense.id}
+                      expense={expense}
+                      paidBy={payer?.name}
+                      currency={event.currency}
+                    />
+                  )
+                })}
+              </div>
+            ) : (
+              <EmptyExpensesCard />
+            )}
         </section>
       )}
 
@@ -741,13 +624,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <div className="min-w-0 space-y-5">
             <div className="min-w-0">
               <h2 className="text-2xl font-black text-foreground lg:text-3xl">Saldos</h2>
-              <p className="truncate text-sm text-muted-foreground">Quien le debe a quien</p>
             </div>
 
-            <BalanceSummaryCard suggestedPayments={settlements.length} totalToPay={totalToPay} />
-
             <div className="space-y-3">
-              <h3 className="text-base font-black text-foreground">Cuentas sugeridas</h3>
+              <h3 className="text-base font-black text-foreground">Pagos sugeridos</h3>
               {settlements.length > 0 ? (
                 <div className="grid gap-3 xl:grid-cols-2 [&>*]:min-w-0">
                   {settlements.map((settlement) => (
@@ -756,6 +636,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                       from={settlement.fromName}
                       to={settlement.toName}
                       amount={settlement.amount}
+                      currency={event.currency}
                     />
                   ))}
                 </div>
@@ -776,6 +657,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 key={balance.participantId}
                 name={balance.participantName}
                 amount={balance.netBalance}
+                currency={event.currency}
               />
             ))}
           </aside>
@@ -786,34 +668,72 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         <section className="space-y-4">
           <div>
             <h2 className="text-2xl font-black text-foreground lg:text-3xl">Integrantes</h2>
-            <p className="hidden text-sm text-muted-foreground lg:block">Personas incluidas en este grupo.</p>
+            <p className="text-sm font-semibold text-muted-foreground">{participants.length} personas</p>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {event.participants.map((participant) => (
-              <article key={participant.id} className="splitit-card flex items-center gap-3 p-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E8FAF5] text-sm font-black text-primary">
-                  {getInitials(participant.name)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-black text-foreground">{participant.name}</p>
-                  <p className="text-xs font-semibold text-muted-foreground">
-                    {participant.isGuest ? 'Invitado' : participant.email}
-                  </p>
-                </div>
-                <UsersRound className="h-5 w-5 text-muted-foreground" />
-              </article>
-            ))}
+            {participants.map((participant) => {
+              const isOwner = participant.email === mockCurrentUser.email
+              return (
+                <article key={participant.id} className="splitit-card flex items-center gap-3 p-4">
+                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-black ${isOwner ? 'bg-primary text-primary-foreground' : 'bg-[#E8FAF5] text-primary'}`}>
+                    {getInitials(participant.name)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-black text-foreground">{participant.name}</p>
+                      {isOwner && (
+                        <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary">
+                          Organizador
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-semibold text-muted-foreground">
+                      {participant.isGuest ? 'Invitado' : participant.email}
+                    </p>
+                  </div>
+                  <UsersRound className="h-5 w-5 text-muted-foreground" />
+                </article>
+              )
+            })}
           </div>
         </section>
       )}
 
-      <ExpenseDetailDialog
-        expense={expenses.find((item) => item.id === selectedExpenseId) ?? null}
-        participants={event.participants}
-        currency={event.currency}
-        onClose={() => setSelectedExpenseId(null)}
-      />
+      <Dialog open={isNameOpen} onOpenChange={setIsNameOpen}>
+        <DialogContent className="rounded-[24px]">
+          <DialogHeader>
+            <DialogTitle>Editar nombre</DialogTitle>
+            <DialogDescription>El nombre aparece en la lista de eventos y en el header.</DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              const trimmed = nameDraft.trim()
+              if (!trimmed) return
+              setEventName(trimmed)
+              setIsNameOpen(false)
+            }}
+            className="space-y-4"
+          >
+            <Input
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              placeholder="Nombre del evento"
+              className="rounded-[18px]"
+              autoFocus
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <Button type="button" variant="outline" className="rounded-[18px]" onClick={() => setIsNameOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" className="rounded-[18px]" disabled={!nameDraft.trim()}>
+                Guardar
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isDescriptionOpen} onOpenChange={setIsDescriptionOpen}>
         <DialogContent className="rounded-[24px]">
@@ -891,93 +811,5 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </DialogContent>
       </Dialog>
     </div>
-  )
-}
-
-function ExpenseDetailDialog({
-  expense,
-  participants,
-  currency,
-  onClose,
-}: {
-  expense: Expense | null
-  participants: Event['participants']
-  currency: string
-  onClose: () => void
-}) {
-  const payer = expense ? participants.find((participant) => participant.id === expense.paidBy) : undefined
-  const sharePerPerson = expense ? expense.amount / expense.splitBetween.length : 0
-  const splitParticipants = expense
-    ? expense.splitBetween
-        .map((id) => participants.find((participant) => participant.id === id))
-        .filter((participant): participant is NonNullable<typeof participant> => Boolean(participant))
-    : []
-
-  return (
-    <Dialog open={expense !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto rounded-[24px]">
-        {expense && (
-          <>
-            <DialogHeader>
-              <DialogTitle>{expense.name}</DialogTitle>
-              <DialogDescription>{formatDate(expense.date)}</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="rounded-[20px] bg-[#E8FAF5] p-4">
-                <p className="text-xs font-bold text-muted-foreground">Total</p>
-                <p className="mt-1 text-2xl font-black text-primary">
-                  {formatCurrency(expense.amount, currency)}
-                </p>
-                {expense.originalCurrency && expense.originalAmount !== undefined && expense.exchangeRate && (
-                  <p className="mt-1 text-xs font-semibold text-muted-foreground">
-                    Original: {formatCurrency(expense.originalAmount, expense.originalCurrency)} {expense.originalCurrency}
-                    {' · '}
-                    1 {expense.originalCurrency} = {expense.exchangeRate.toLocaleString('es-AR', { maximumFractionDigits: 4 })} {currency}
-                  </p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-[18px] border border-border bg-background p-3">
-                  <p className="text-xs font-bold text-muted-foreground">Pago</p>
-                  <p className="mt-1 text-sm font-black text-foreground">{payer?.name ?? 'Sin asignar'}</p>
-                </div>
-                <div className="rounded-[18px] border border-border bg-background p-3">
-                  <p className="text-xs font-bold text-muted-foreground">Categoria</p>
-                  <p className="mt-1 text-sm font-black text-foreground">
-                    <CategoryBadge category={expense.category} />
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-black text-foreground">Dividido entre</p>
-                  <p className="text-xs font-semibold text-muted-foreground">
-                    {formatCurrency(sharePerPerson, currency)} c/u
-                  </p>
-                </div>
-                <div className="mt-3 space-y-2">
-                  {splitParticipants.map((participant) => (
-                    <div
-                      key={participant.id}
-                      className="flex items-center gap-3 rounded-[18px] border border-border bg-background p-3"
-                    >
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-xs font-black text-foreground">
-                        {getInitials(participant.name)}
-                      </div>
-                      <p className="flex-1 text-sm font-bold text-foreground">{participant.name}</p>
-                      <p className="text-sm font-black text-primary">
-                        {formatCurrency(sharePerPerson, currency)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
   )
 }
