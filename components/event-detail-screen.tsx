@@ -13,8 +13,20 @@ import {
   WandSparkles,
   ReceiptText,
   Share2,
+  Trash2,
   UsersRound,
 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -27,7 +39,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import {
   calculateBalances,
@@ -40,7 +51,7 @@ import {
   mockEvents,
 } from '@/lib/mock-data'
 import { getExchangeRates } from '@/lib/exchange'
-import { EventIcon, eventIcons, getEventIcon } from '@/lib/event-icons'
+import { getEventIcon } from '@/lib/event-icons'
 import { Event, Expense } from '@/lib/types'
 
 const supportedCurrencies = ['ARS', 'USD', 'EUR', 'BRL', 'UYU', 'CLP'] as const
@@ -122,10 +133,14 @@ function ExpenseCard({
   expense,
   paidBy,
   currency,
+  onEdit,
+  onDelete,
 }: {
   expense: Expense
   paidBy?: string
   currency: string
+  onEdit: () => void
+  onDelete: () => void
 }) {
   return (
     <article className="splitit-card w-full p-4">
@@ -140,13 +155,55 @@ function ExpenseCard({
           <p className="mt-2 text-xs font-semibold text-muted-foreground">Pago {paidBy ?? 'Sin asignar'}</p>
         </div>
 
-        <div className="text-right">
+        <div className="shrink-0 text-right">
           <p className="text-sm font-black text-primary">{formatCurrency(expense.amount, currency)}</p>
           {expense.originalCurrency && expense.originalAmount !== undefined && (
             <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">
               {formatCurrency(expense.originalAmount, expense.originalCurrency)} {expense.originalCurrency}
             </p>
           )}
+          <div className="mt-3 flex justify-end gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="rounded-full text-muted-foreground hover:text-foreground"
+              onClick={onEdit}
+              aria-label={`Editar ${expense.name}`}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="rounded-full text-secondary hover:bg-[#F0E9FF] hover:text-secondary"
+                  aria-label={`Eliminar ${expense.name}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="rounded-[24px]">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Estas seguro que queres eliminar este gasto?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Vas a eliminar {expense.name}. Esta accion tambien actualiza los saldos del evento.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="rounded-[18px]">Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="rounded-[18px] bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                    onClick={onDelete}
+                  >
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </div>
     </article>
@@ -245,15 +302,8 @@ export function EventDetailScreen({ eventId, empty = false }: { eventId: string;
   const [activeTab, setActiveTab] = useState<TabValue>('expenses')
   const [copied, setCopied] = useState(false)
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false)
-  const [iconValue, setIconValue] = useState<EventIcon>(event.icon ?? 'plane')
-  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false)
-  const { Icon: EventIconComponent } = getEventIcon(iconValue)
-  const [eventName, setEventName] = useState(event.name)
-  const [isNameOpen, setIsNameOpen] = useState(false)
-  const [nameDraft, setNameDraft] = useState(eventName)
-  const [eventDescription, setEventDescription] = useState(event.description ?? '')
-  const [isDescriptionOpen, setIsDescriptionOpen] = useState(false)
-  const [descriptionDraft, setDescriptionDraft] = useState(eventDescription)
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null)
+  const { Icon: EventIconComponent } = getEventIcon(event.icon ?? 'plane')
   const [expenseName, setExpenseName] = useState('')
   const [expenseAmount, setExpenseAmount] = useState('')
   const [expenseCurrency, setExpenseCurrency] = useState(event.currency)
@@ -263,6 +313,7 @@ export function EventDetailScreen({ eventId, empty = false }: { eventId: string;
   const [ratesLoading, setRatesLoading] = useState(false)
   const [ratesError, setRatesError] = useState('')
   const needsConversion = expenseCurrency !== event.currency
+  const isExpenseFormOpen = isAddExpenseOpen || editingExpenseId !== null
   const amountNumber = Number(expenseAmount)
   const isValidAmount = Number.isFinite(amountNumber) && amountNumber > 0
   const conversionRate =
@@ -273,7 +324,7 @@ export function EventDetailScreen({ eventId, empty = false }: { eventId: string;
     needsConversion && isValidAmount && conversionRate ? amountNumber * conversionRate : null
 
   useEffect(() => {
-    if (!isAddExpenseOpen || !needsConversion || rates) return
+    if (!isExpenseFormOpen || !needsConversion || rates) return
     let cancelled = false
     setRatesLoading(true)
     setRatesError('')
@@ -290,7 +341,7 @@ export function EventDetailScreen({ eventId, empty = false }: { eventId: string;
     return () => {
       cancelled = true
     }
-  }, [isAddExpenseOpen, needsConversion, rates])
+  }, [isExpenseFormOpen, needsConversion, rates])
 
   const eventSnapshot = { ...event, expenses }
   const balances = calculateBalances(eventSnapshot)
@@ -312,25 +363,24 @@ export function EventDetailScreen({ eventId, empty = false }: { eventId: string;
     setExpenseError('')
   }
 
-  const handleAddExpense = (formEvent: FormEvent) => {
-    formEvent.preventDefault()
+  const getExpenseFormPayload = () => {
     setExpenseError('')
 
     const amount = Number(expenseAmount)
 
     if (!expenseName.trim()) {
       setExpenseError('Ingresa un nombre para el gasto')
-      return
+      return null
     }
 
     if (!Number.isFinite(amount) || amount <= 0) {
       setExpenseError('Ingresa un monto valido')
-      return
+      return null
     }
 
     if (!expensePaidBy) {
       setExpenseError('Selecciona quien pago')
-      return
+      return null
     }
 
     let storedAmount = amount
@@ -341,11 +391,11 @@ export function EventDetailScreen({ eventId, empty = false }: { eventId: string;
     if (needsConversion) {
       if (ratesLoading) {
         setExpenseError('Esperando el tipo de cambio...')
-        return
+        return null
       }
       if (!rates || !conversionRate) {
         setExpenseError(ratesError || 'No se pudo obtener el tipo de cambio')
-        return
+        return null
       }
       storedAmount = Math.round(amount * conversionRate * 100) / 100
       originalAmount = amount
@@ -353,24 +403,87 @@ export function EventDetailScreen({ eventId, empty = false }: { eventId: string;
       exchangeRate = conversionRate
     }
 
+    return {
+      name: expenseName.trim(),
+      amount: storedAmount,
+      paidBy: expensePaidBy,
+      splitBetween: participants.map((participant) => participant.id),
+      originalAmount,
+      originalCurrency,
+      exchangeRate,
+    }
+  }
+
+  const handleAddExpense = (formEvent: FormEvent) => {
+    formEvent.preventDefault()
+    const payload = getExpenseFormPayload()
+    if (!payload) return
+
     setExpenses((current) => [
       {
         id: `exp-local-${Date.now()}`,
         eventId: event.id,
-        name: expenseName.trim(),
-        amount: storedAmount,
-        paidBy: expensePaidBy,
-        splitBetween: participants.map((participant) => participant.id),
+        name: payload.name,
+        amount: payload.amount,
+        paidBy: payload.paidBy,
+        splitBetween: payload.splitBetween,
         date: new Date().toISOString().slice(0, 10),
         createdAt: new Date().toISOString(),
-        originalAmount,
-        originalCurrency,
-        exchangeRate,
+        originalAmount: payload.originalAmount,
+        originalCurrency: payload.originalCurrency,
+        exchangeRate: payload.exchangeRate,
       },
       ...current,
     ])
     resetExpenseForm()
     setIsAddExpenseOpen(false)
+  }
+
+  const openEditExpense = (expense: Expense) => {
+    setExpenseName(expense.name)
+    setExpenseAmount(String(expense.originalAmount ?? expense.amount))
+    setExpenseCurrency(expense.originalCurrency ?? event.currency)
+    setExpensePaidBy(expense.paidBy)
+    setExpenseError('')
+    setEditingExpenseId(expense.id)
+  }
+
+  const closeEditExpense = () => {
+    setEditingExpenseId(null)
+    resetExpenseForm()
+  }
+
+  const handleUpdateExpense = (formEvent: FormEvent) => {
+    formEvent.preventDefault()
+    if (!editingExpenseId) return
+
+    const payload = getExpenseFormPayload()
+    if (!payload) return
+
+    setExpenses((current) =>
+      current.map((expense) =>
+        expense.id === editingExpenseId
+          ? {
+              ...expense,
+              name: payload.name,
+              amount: payload.amount,
+              paidBy: payload.paidBy,
+              splitBetween: payload.splitBetween,
+              originalAmount: payload.originalAmount,
+              originalCurrency: payload.originalCurrency,
+              exchangeRate: payload.exchangeRate,
+            }
+          : expense
+      )
+    )
+    closeEditExpense()
+  }
+
+  const handleDeleteExpense = (expenseId: string) => {
+    setExpenses((current) => current.filter((expense) => expense.id !== expenseId))
+    if (editingExpenseId === expenseId) {
+      closeEditExpense()
+    }
   }
 
   return (
@@ -413,45 +526,14 @@ export function EventDetailScreen({ eventId, empty = false }: { eventId: string;
 
         <div className="flex items-center gap-4 lg:items-end lg:justify-between">
           <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => setIsIconPickerOpen(true)}
-              className="group relative"
-              aria-label="Cambiar icono del evento"
-            >
-              <IconCircle tone="blue" size="lg">
-                <EventIconComponent className="h-7 w-7" />
-              </IconCircle>
-              <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-card text-foreground shadow-[0_2px_8px_rgba(15,23,42,0.12)] transition-transform group-hover:scale-110">
-                <Pencil className="h-3 w-3" />
-              </span>
-            </button>
+            <IconCircle tone="blue" size="lg">
+              <EventIconComponent className="h-7 w-7" />
+            </IconCircle>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-black text-foreground lg:text-4xl">{eventName}</h1>
-                <button
-                  type="button"
-                  onClick={() => { setNameDraft(eventName); setIsNameOpen(true) }}
-                  className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label="Editar nombre del evento"
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-              </div>
-              {(eventDescription || true) && (
+              <h1 className="text-2xl font-black text-foreground lg:text-4xl">{event.name}</h1>
+              {event.description && (
                 <p className="mt-1 max-w-xl text-sm font-semibold text-muted-foreground lg:text-base">
-                  {eventDescription && <span>{eventDescription} · </span>}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDescriptionDraft(eventDescription)
-                      setIsDescriptionOpen(true)
-                    }}
-                    className="inline-flex items-center gap-1 align-middle text-xs font-black text-primary hover:underline"
-                  >
-                    <Pencil className="h-3 w-3" />
-                    {eventDescription ? 'Editar descripcion' : 'Agregar descripcion'}
-                  </button>
+                  {event.description}
                 </p>
               )}
               <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -480,9 +562,18 @@ export function EventDetailScreen({ eventId, empty = false }: { eventId: string;
             </article>
 
             <div className="grid gap-3 md:grid-cols-[220px]">
-              <Dialog open={isAddExpenseOpen} onOpenChange={setIsAddExpenseOpen}>
+              <Dialog
+                open={isAddExpenseOpen}
+                onOpenChange={(open) => {
+                  setIsAddExpenseOpen(open)
+                  if (!open) resetExpenseForm()
+                }}
+              >
                 <DialogTrigger asChild>
-                  <Button className="h-14 w-full rounded-[18px] bg-primary text-base font-black text-primary-foreground hover:bg-primary/90">
+                  <Button
+                    className="h-14 w-full rounded-[18px] bg-primary text-base font-black text-primary-foreground hover:bg-primary/90"
+                    onClick={resetExpenseForm}
+                  >
                     <Plus className="mr-2 h-5 w-5" />
                     Agregar gasto
                   </Button>
@@ -609,6 +700,8 @@ export function EventDetailScreen({ eventId, empty = false }: { eventId: string;
                       expense={expense}
                       paidBy={payer?.name}
                       currency={event.currency}
+                      onEdit={() => openEditExpense(expense)}
+                      onDelete={() => handleDeleteExpense(expense.id)}
                     />
                   )
                 })}
@@ -664,6 +757,114 @@ export function EventDetailScreen({ eventId, empty = false }: { eventId: string;
         </section>
       )}
 
+      <Dialog
+        open={editingExpenseId !== null}
+        onOpenChange={(open) => {
+          if (!open) closeEditExpense()
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-[24px]">
+          <DialogHeader>
+            <DialogTitle>Editar gasto</DialogTitle>
+            <DialogDescription>Modifica el nombre, monto o quien pago.</DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleUpdateExpense} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-expense-name">Nombre</Label>
+              <Input
+                id="edit-expense-name"
+                value={expenseName}
+                onChange={(item) => setExpenseName(item.target.value)}
+                placeholder="Ej: Supermercado"
+                className="rounded-[18px]"
+              />
+            </div>
+
+            <div className="grid grid-cols-[1fr_auto] gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="edit-expense-amount">Monto</Label>
+                <Input
+                  id="edit-expense-amount"
+                  inputMode="decimal"
+                  value={expenseAmount}
+                  onChange={(item) => setExpenseAmount(item.target.value)}
+                  placeholder="0"
+                  className="rounded-[18px]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Moneda</Label>
+                <Select value={expenseCurrency} onValueChange={setExpenseCurrency}>
+                  <SelectTrigger className="h-10 w-[110px] rounded-[18px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {supportedCurrencies.map((code) => (
+                      <SelectItem key={code} value={code}>
+                        {code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {needsConversion && (
+              <div className="rounded-[16px] border border-border bg-background px-3 py-2 text-xs font-semibold">
+                {ratesLoading && (
+                  <span className="text-muted-foreground">Obteniendo tipo de cambio...</span>
+                )}
+                {!ratesLoading && ratesError && (
+                  <span className="text-destructive">{ratesError}</span>
+                )}
+                {!ratesLoading && !ratesError && conversionRate && (
+                  <div className="flex flex-col gap-0.5 text-muted-foreground">
+                    <span>
+                      1 {expenseCurrency} = {conversionRate.toLocaleString('es-AR', { maximumFractionDigits: 4 })} {event.currency}
+                    </span>
+                    {convertedAmount !== null && (
+                      <span className="text-foreground">
+                        Se guardara como {formatCurrency(convertedAmount, event.currency)}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Pago</Label>
+              <Select value={expensePaidBy} onValueChange={setExpensePaidBy}>
+                <SelectTrigger className="h-11 rounded-[18px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {participants.map((participant) => (
+                    <SelectItem key={participant.id} value={participant.id}>
+                      {participant.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {expenseError && (
+              <p className="text-sm font-semibold text-destructive">{expenseError}</p>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <Button type="button" variant="outline" className="rounded-[18px]" onClick={closeEditExpense}>
+                Cancelar
+              </Button>
+              <Button type="submit" className="rounded-[18px]">
+                Guardar cambios
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {activeTab === 'members' && (
         <section className="space-y-4">
           <div>
@@ -700,116 +901,6 @@ export function EventDetailScreen({ eventId, empty = false }: { eventId: string;
         </section>
       )}
 
-      <Dialog open={isNameOpen} onOpenChange={setIsNameOpen}>
-        <DialogContent className="rounded-[24px]">
-          <DialogHeader>
-            <DialogTitle>Editar nombre</DialogTitle>
-            <DialogDescription>El nombre aparece en la lista de eventos y en el header.</DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              const trimmed = nameDraft.trim()
-              if (!trimmed) return
-              setEventName(trimmed)
-              setIsNameOpen(false)
-            }}
-            className="space-y-4"
-          >
-            <Input
-              value={nameDraft}
-              onChange={(e) => setNameDraft(e.target.value)}
-              placeholder="Nombre del evento"
-              className="rounded-[18px]"
-              autoFocus
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <Button type="button" variant="outline" className="rounded-[18px]" onClick={() => setIsNameOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" className="rounded-[18px]" disabled={!nameDraft.trim()}>
-                Guardar
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isDescriptionOpen} onOpenChange={setIsDescriptionOpen}>
-        <DialogContent className="rounded-[24px]">
-          <DialogHeader>
-            <DialogTitle>{eventDescription ? 'Editar descripcion' : 'Agregar descripcion'}</DialogTitle>
-            <DialogDescription>Aparece debajo del nombre del evento.</DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={(item) => {
-              item.preventDefault()
-              const trimmed = descriptionDraft.trim()
-              setEventDescription(trimmed)
-              event.description = trimmed || undefined
-              setIsDescriptionOpen(false)
-            }}
-            className="space-y-4"
-          >
-            <Textarea
-              value={descriptionDraft}
-              onChange={(item) => setDescriptionDraft(item.target.value)}
-              placeholder="Una descripcion corta del evento"
-              className="min-h-24 rounded-[18px]"
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-[18px]"
-                onClick={() => setIsDescriptionOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" className="rounded-[18px]">
-                Guardar
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isIconPickerOpen} onOpenChange={setIsIconPickerOpen}>
-        <DialogContent className="rounded-[24px]">
-          <DialogHeader>
-            <DialogTitle>Elegi un icono</DialogTitle>
-            <DialogDescription>
-              Lo vas a ver en el header del evento y en la lista de tus eventos.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-4 gap-3">
-            {eventIcons.map(({ value, label, Icon }) => {
-              const isSelected = value === iconValue
-
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => {
-                    setIconValue(value)
-                    event.icon = value
-                    setIsIconPickerOpen(false)
-                  }}
-                  className={cn(
-                    'flex flex-col items-center gap-2 rounded-[18px] border p-3 transition-colors',
-                    isSelected
-                      ? 'border-primary bg-[#E8FAF5] text-primary'
-                      : 'border-border bg-background text-foreground hover:border-primary/40'
-                  )}
-                >
-                  <Icon className="h-6 w-6" />
-                  <span className="text-xs font-black">{label}</span>
-                </button>
-              )
-            })}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
